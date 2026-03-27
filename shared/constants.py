@@ -44,3 +44,29 @@ SEM_BEAM_ENERGY_KEV = (5, 20)
 SEM_SPOT_SIZE_NM = (1, 10)
 SEM_WORKING_DISTANCE_MM = (5, 15)
 SEM_EDX_COUNTS_THRESHOLD = 1000
+
+# Phase 1 modeling / ML / reporting constants
+GEMPY_DEPTH_EXTENT_M = 50
+GEMPY_RESOLUTION = (50, 50, 25)
+TA_GRADE_THRESHOLD_PPM = 100
+MINERAL_CLASSES = [
+    "coltan",
+    "cassiterite",
+    "quartz",
+    "feldspar",
+    "muscovite",
+    "tourmaline",
+    "ilmenite",
+    "unknown",
+]
+TFLITE_TARGET_SIZE_MB = 10
+TFLITE_TARGET_INFERENCE_MS = 500
+MIN_CLASSIFICATION_ACCURACY = 0.85
+JORC_MAX_WORDS_PER_CRITERION = 300
+JORC_AUTO_COMPLETABLE_CRITERIA = [
+    "sampling",
+    "location_of_data_points",
+    "data_spacing",
+    "quality_of_assay_data",
+    "sub_sampling",
+]

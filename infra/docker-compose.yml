@@ -32,6 +32,13 @@ services:
     image: redis:7
     ports: ["6379:6379"]
 
+  celery_worker:
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.api
+    command: python -c "print('celery worker placeholder')"
+    depends_on: [redis, db]
+
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"

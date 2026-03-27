@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'screens/classify_mineral.dart';
+import 'screens/home.dart';
+import 'screens/instrument_capture.dart';
+import 'screens/jorc_report.dart';
+import 'screens/kriging_map.dart';
 import 'screens/home.dart';
 import 'screens/login.dart';
 
@@ -16,6 +21,10 @@ class TerraforgeApp extends StatelessWidget {
       routes: {
         '/': (context) => const LoginScreen(),
         '/home': (context) => const HomeScreen(),
+        '/instrument-capture': (context) => const InstrumentCaptureScreen(),
+        '/kriging-map': (context) => const KrigingMapScreen(),
+        '/classify-mineral': (context) => const ClassifyMineralScreen(),
+        '/jorc-report': (context) => const JorcReportScreen(),
       },
     );
   }
