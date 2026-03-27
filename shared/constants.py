@@ -1,0 +1,72 @@
+# Kriging / Geostatistics
+VARIOGRAM_MODEL = "spherical"
+NUGGET_RANGE = (0.1, 0.5)
+KRIGING_MAX_POINTS = 15
+KRIGING_GRID_RESOLUTION = 10.0
+
+# Uncertainty
+MONTE_CARLO_ITERATIONS = 10_000
+CONFIDENCE_INTERVAL = 0.95
+
+# Geophysics
+SIMPEG_MISFIT_TARGET = 1.0
+INVERSION_BETA_INITIAL = 1e-3
+
+# Paleontology / Stratigraphy
+STRAT_CORRELATION_R2_MIN = 0.80
+
+# Stress & Tectonics
+FLUID_PRESSURE_RATIO_DEFAULT = 0.38
+
+# Financial
+DISCOUNT_RATE_BASE = 0.12
+METAL_PRICE_VOLATILITY = 0.20
+HEDGING_SIMULATIONS = 10_000
+
+# Hyperspectral
+SNR_TARGET = 200
+BAND_RESOLUTION_NM = 10
+
+# LiDAR
+POINT_DENSITY_PTS_M2 = 500
+LIDAR_ACCURACY_CM = 3
+
+# Petrographic Thin-Section Microscopy
+PPL_IMAGE_RESOLUTION_TARGET = 2048
+XPL_IMAGE_RESOLUTION_TARGET = 2048
+PETROGRAPHIC_MIN_COVERAGE = 0.70
+GRAIN_SIZE_BIN_MM = [0.0625, 0.125, 0.25, 0.5, 1.0, 2.0]
+
+# Scanning Electron Microscopy (SEM)
+SEM_IMAGE_RESOLUTION_TARGET = 4096
+SEM_MAGNIFICATION_RANGE = (50, 50000)
+SEM_BEAM_ENERGY_KEV = (5, 20)
+SEM_SPOT_SIZE_NM = (1, 10)
+SEM_WORKING_DISTANCE_MM = (5, 15)
+SEM_EDX_COUNTS_THRESHOLD = 1000
+
+# Phase 1 modeling / ML / reporting constants
+GEMPY_DEPTH_EXTENT_M = 50
+GEMPY_RESOLUTION = (50, 50, 25)
+TA_GRADE_THRESHOLD_PPM = 100
+MINERAL_CLASSES = [
+    "coltan",
+    "cassiterite",
+    "quartz",
+    "feldspar",
+    "muscovite",
+    "tourmaline",
+    "ilmenite",
+    "unknown",
+]
+TFLITE_TARGET_SIZE_MB = 10
+TFLITE_TARGET_INFERENCE_MS = 500
+MIN_CLASSIFICATION_ACCURACY = 0.85
+JORC_MAX_WORDS_PER_CRITERION = 300
+JORC_AUTO_COMPLETABLE_CRITERIA = [
+    "sampling",
+    "location_of_data_points",
+    "data_spacing",
+    "quality_of_assay_data",
+    "sub_sampling",
+]
