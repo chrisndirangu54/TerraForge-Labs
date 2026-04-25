@@ -23,3 +23,9 @@ pytest --tb=short
 - It includes a mobile app shell for field workflows and a backend API for automation.
 
 For a non-technical walkthrough, see `docs/layman-overview.md`.
+
+
+## Phase 2 scaffold highlights
+- Added new backend endpoints for `/fuse-spectral`, `/fuse-seismic`, `/ingest-historical`, `/classify-thin-section`, `/parse-xrd`, and marketplace catalogue.
+- Added instrument scaffolds for LiDAR, hyperspectral, thin section, XRD, Raman, MT, gravity, TDEM, SP, and hydrogeology.
+- Added plugin auto-discovery scaffold and marketplace seed catalogue fixtures.
