@@ -29,6 +29,15 @@ For a non-technical walkthrough, see `docs/layman-overview.md`.
 - Added new backend endpoints for `/fuse-spectral`, `/fuse-seismic`, `/ingest-historical`, `/classify-thin-section`, `/parse-xrd`, and marketplace catalogue.
 - Added instrument scaffolds for LiDAR, hyperspectral, thin section, XRD, Raman, MT, gravity, TDEM, SP, and hydrogeology.
 - Added plugin auto-discovery scaffold and marketplace seed catalogue fixtures.
+
+
+## Problem statement
+Exploration teams in East Africa often work with fragmented, offline, and paper-heavy data pipelines. TerraForge aims to unify instrument ingestion, geospatial modeling, and compliance reporting in one offline-first stack.
+
+## Demo assets
+- Screenshots: pending live emulator capture in CI artifact pipeline.
+- Demo video link: TODO (attach post-AmCham recording).
+- Landing page: TODO (Carrd/GitHub Pages with early access form).
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope
