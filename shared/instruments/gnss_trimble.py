@@ -40,3 +40,8 @@ def _nmea_to_decimal(raw: str, hemi: str) -> float:
     if hemi in {"S", "W"}:
         dec *= -1
     return dec
+from shared.instruments._stub_impl import StubParser
+
+
+class GnssTrimbleParser(StubParser):
+    """gnss_trimble parser stub."""

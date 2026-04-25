@@ -4,6 +4,7 @@ import 'screens/home.dart';
 import 'screens/instrument_capture.dart';
 import 'screens/jorc_report.dart';
 import 'screens/kriging_map.dart';
+import 'screens/home.dart';
 import 'screens/login.dart';
 
 void main() {
