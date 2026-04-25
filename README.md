@@ -14,6 +14,21 @@ Implemented modules:
 ## Run tests
 ```bash
 pytest --tb=short
+```
+
+## What this repo does (plain language)
+- It ingests raw geological field files from common instruments.
+- It converts those files into structured data and quick map/model artifacts.
+- It can generate draft report outputs with explicit AI-assistance disclaimers.
+- It includes a mobile app shell for field workflows and a backend API for automation.
+
+For a non-technical walkthrough, see `docs/layman-overview.md`.
+
+
+## Phase 2 scaffold highlights
+- Added new backend endpoints for `/fuse-spectral`, `/fuse-seismic`, `/ingest-historical`, `/classify-thin-section`, `/parse-xrd`, and marketplace catalogue.
+- Added instrument scaffolds for LiDAR, hyperspectral, thin section, XRD, Raman, MT, gravity, TDEM, SP, and hydrogeology.
+- Added plugin auto-discovery scaffold and marketplace seed catalogue fixtures.
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope
