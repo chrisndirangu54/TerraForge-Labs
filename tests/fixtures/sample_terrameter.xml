@@ -1,0 +1,4 @@
+<root>
+  <measurement><profile_id>P1</profile_id><electrode_spacing_m>10</electrode_spacing_m><apparent_resistivity_ohm_m>120</apparent_resistivity_ohm_m><ip_chargeability_ms>1.2</ip_chargeability_ms><sp_mv>10</sp_mv><lon>37.50</lon><lat>-1.15</lat></measurement>
+  <measurement><profile_id>P2</profile_id><electrode_spacing_m>20</electrode_spacing_m><apparent_resistivity_ohm_m>60000</apparent_resistivity_ohm_m><ip_chargeability_ms>0.2</ip_chargeability_ms><sp_mv>5</sp_mv><lon>37.51</lon><lat>-1.16</lat></measurement>
+</root>
