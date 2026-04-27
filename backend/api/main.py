@@ -35,6 +35,9 @@ app.include_router(paleontology_router)
 app.include_router(mission_router)
 app.include_router(marketplace_payments_router)
 
+app = FastAPI(title="Terraforge Labs API", version="0.1.0")
+app.include_router(geodata_router)
+
 
 @app.get("/health")
 async def health() -> dict:
