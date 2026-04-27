@@ -38,6 +38,13 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Screenshots: pending live emulator capture in CI artifact pipeline.
 - Demo video link: TODO (attach post-AmCham recording).
 - Landing page: TODO (Carrd/GitHub Pages with early access form).
+
+
+## Phase 3 scaffold highlights
+- Added 3D MT inversion and geothermal resource estimate scaffolds.
+- Added SEM automated mineralogy, tectonic context, and paleontology processing scaffolds.
+- Added autonomous field agent loop scaffold and mission planning endpoint.
+- Added TerraForge-Geo LLM training/evaluation placeholders and gRPC instrument streaming proto.
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope

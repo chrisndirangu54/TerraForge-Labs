@@ -11,6 +11,11 @@ from backend.api.routers.historical import router as historical_router
 from backend.api.routers.petrography import router as petrography_router
 from backend.api.routers.marketplace import router as marketplace_router
 from backend.api.routers.compliance import router as compliance_router
+from backend.api.routers.mt3d import router as mt3d_router
+from backend.api.routers.tectonics import router as tectonics_router
+from backend.api.routers.paleontology import router as paleontology_router
+from backend.api.routers.mission import router as mission_router
+from backend.api.routers.marketplace_payments import router as marketplace_payments_router
 
 app = FastAPI(title="Terraforge Labs API", version="0.2.0")
 app.include_router(geodata_router)
@@ -24,6 +29,11 @@ app.include_router(historical_router)
 app.include_router(petrography_router)
 app.include_router(marketplace_router)
 app.include_router(compliance_router)
+app.include_router(mt3d_router)
+app.include_router(tectonics_router)
+app.include_router(paleontology_router)
+app.include_router(mission_router)
+app.include_router(marketplace_payments_router)
 
 app = FastAPI(title="Terraforge Labs API", version="0.1.0")
 app.include_router(geodata_router)
