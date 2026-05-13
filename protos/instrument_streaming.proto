@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package terraforge;
+
+message InstrumentReading {
+  string instrument_type = 1;
+  double lon = 2;
+  double lat = 3;
+  double value = 4;
+  string timestamp = 5;
+}
+
+message Ack {
+  string status = 1;
+}
+
+service InstrumentStreaming {
+  rpc StreamReadings (stream InstrumentReading) returns (Ack);
+}

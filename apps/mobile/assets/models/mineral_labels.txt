@@ -1,0 +1,8 @@
+coltan
+cassiterite
+quartz
+feldspar
+muscovite
+tourmaline
+ilmenite
+unknown
