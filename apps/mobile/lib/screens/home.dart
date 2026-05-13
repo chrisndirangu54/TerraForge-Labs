@@ -35,6 +35,8 @@ class _NavCard extends StatelessWidget {
         title: Text('$icon  $title'),
         onTap: () => Navigator.pushNamed(context, route),
       ),
+    return const Scaffold(
+      body: Center(child: Text('Offline-first home scaffold')),
     );
   }
 }
