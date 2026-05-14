@@ -13,6 +13,7 @@ class HomeScreen extends StatelessWidget {
           _NavCard(icon: '📡', title: 'Collect Field Data', route: '/instrument-capture'),
           _NavCard(icon: '🗺', title: 'View Kriging Map', route: '/kriging-map'),
           _NavCard(icon: '🔬', title: 'Classify Mineral', route: '/classify-mineral'),
+          _NavCard(icon: '🌿', title: 'Geobotany Survey', route: '/geobotany'),
           _NavCard(icon: '📄', title: 'Generate JORC Report', route: '/jorc-report'),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/classify_mineral.dart';
+import 'screens/geobotany.dart';
 import 'screens/home.dart';
 import 'screens/instrument_capture.dart';
 import 'screens/jorc_report.dart';
@@ -25,6 +26,7 @@ class TerraforgeApp extends StatelessWidget {
         '/kriging-map': (context) => const KrigingMapScreen(),
         '/classify-mineral': (context) => const ClassifyMineralScreen(),
         '/jorc-report': (context) => const JorcReportScreen(),
+        '/geobotany': (context) => const GeobotanyScreen(),
       },
     );
   }

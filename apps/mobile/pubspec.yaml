@@ -36,3 +36,6 @@ flutter:
   assets:
     - assets/models/mineral_classifier_int8.tflite
     - assets/models/mineral_labels.txt
+
+    - assets/models/geobotany_classifier_int8.tflite
+    - assets/models/geobotany_labels.txt

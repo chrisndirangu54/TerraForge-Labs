@@ -45,6 +45,14 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Added SEM automated mineralogy, tectonic context, and paleontology processing scaffolds.
 - Added autonomous field agent loop scaffold and mission planning endpoint.
 - Added TerraForge-Geo LLM training/evaluation placeholders and gRPC instrument streaming proto.
+
+
+## Phase 4 Track Q scaffold highlights
+- Added geobotany API endpoints for plant classification, observation logging, stress maps, biogeochemical upload, anomaly maps, indicator species, and survey planning.
+- Added vegetation stress, geobotanical anomaly, active-learning, and biogeochemical ICP-MS processing scaffolds.
+- Added mobile geobotany workflow shell and bundled placeholder TFLite assets for the plant indicator classifier.
+- Added JORC geobotany auto-population text and required supplementary-evidence disclaimer.
+- See `docs/phase4-track-q-geobotany.md` for the full Phase 4 addendum.
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope
