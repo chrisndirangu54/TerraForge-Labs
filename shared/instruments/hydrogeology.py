@@ -91,3 +91,6 @@ def lab_water_quality_schema() -> list[str]:
         "sulfate_mg_l",
         "bicarbonate_mg_l",
     ]
+
+def parse_hydro(_filepath: str) -> dict:
+    return {'water_quality_url': 'minio://compliance/water_quality.csv', 'status': 'phase2_stub'}

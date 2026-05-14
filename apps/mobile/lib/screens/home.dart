@@ -22,6 +22,9 @@ class HomeScreen extends StatelessWidget {
           _NavCard(icon: '🛰', title: 'Satellite Browser', route: '/satellite'),
           _NavCard(icon: '🧬', title: 'Digital Twin', route: '/twin'),
           _NavCard(icon: '📦', title: 'Offline Packs', route: '/offline'),
+          _NavCard(icon: '🗺', title: 'View Kriging Map', route: '/kriging-map'),
+          _NavCard(icon: '🔬', title: 'Classify Mineral', route: '/classify-mineral'),
+          _NavCard(icon: '🌿', title: 'Geobotany Survey', route: '/geobotany'),
           _NavCard(icon: '📄', title: 'Generate JORC Report', route: '/jorc-report'),
         ],
       ),
@@ -43,6 +46,8 @@ class _NavCard extends StatelessWidget {
         title: Text('$icon  $title'),
         onTap: () => Navigator.pushNamed(context, route),
       ),
+    return const Scaffold(
+      body: Center(child: Text('Offline-first home scaffold')),
     );
   }
 }

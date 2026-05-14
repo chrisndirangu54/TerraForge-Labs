@@ -62,3 +62,17 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Added Track P infrastructure scaffolds for OSRM-style routing, grid proximity, pipeline routing, telecoms, and mining infrastructure assessment.
 - Added React web shell metadata and expanded Flutter navigation/dependencies for Phase 4 map, hydro, urban, infrastructure, satellite, twin, and offline workflows.
 - See `docs/phase4-expanded-brief.md` for the full expanded Phase 4 agent brief.
+AGPL-3.0 offline-first geological platform scaffold for Phase 0.
+
+## Phase 0 scope
+- FastAPI skeleton (`backend/api`) with `/health`, `/version`, and `/fuse-geodata` stub.
+- Django marketplace/admin scaffold (`backend/marketplace`) with `Dataset` model placeholders.
+- Shared constants + instrument parser protocol and stubs (`shared/`).
+- Local infra (`infra/docker-compose.yml`) for API, marketplace, PostGIS, Redis, MinIO.
+- Flutter app skeleton (`apps/mobile`) and docs baseline (`docs/`).
+
+## Quick start
+```bash
+cp .env.example .env
+docker compose -f infra/docker-compose.yml up --build
+```
