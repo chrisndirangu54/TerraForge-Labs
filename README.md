@@ -53,6 +53,15 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Added mobile geobotany workflow shell and bundled placeholder TFLite assets for the plant indicator classifier.
 - Added JORC geobotany auto-population text and required supplementary-evidence disclaimer.
 - See `docs/phase4-track-q-geobotany.md` for the full Phase 4 addendum.
+
+
+## Phase 4 Expanded scaffold highlights
+- Added Track M mapping stack endpoints for MapLibre/OpenFreeMap, PMTiles offline packs, Sentinel-2 basemaps, layer catalogues, provider plans, and Cesium tileset jobs.
+- Added Track N hydrogeology processing/API scaffolds for slug tests, pumping tests, water quality compliance, MODFLOW contracts, borehole siting, and borehole/water-table layers.
+- Added Track O urban planning scaffolds for settlement classification, service access, suitability, conflict checks, land use, and population estimates.
+- Added Track P infrastructure scaffolds for OSRM-style routing, grid proximity, pipeline routing, telecoms, and mining infrastructure assessment.
+- Added React web shell metadata and expanded Flutter navigation/dependencies for Phase 4 map, hydro, urban, infrastructure, satellite, twin, and offline workflows.
+- See `docs/phase4-expanded-brief.md` for the full expanded Phase 4 agent brief.
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope

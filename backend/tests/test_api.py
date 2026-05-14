@@ -27,6 +27,44 @@ def test_geobotany_router_defines_track_q_endpoints():
     assert '@router.post("/geobotany/stress-map")' in source
     assert '@router.post("/geobotany/biogeochem-upload")' in source
     assert '@router.post("/geobotany/survey-plan")' in source
+
+
+def test_phase4_expanded_routers_registered():
+    source = Path("backend/api/main.py").read_text()
+    for router_name in [
+        "mapping_router",
+        "hydrogeology_router",
+        "urban_router",
+        "infrastructure_router",
+        "satellite_phase4_router",
+    ]:
+        assert router_name in source
+
+
+def test_phase4_expanded_endpoint_sources_exist():
+    checks = {
+        "backend/api/routers/mapping.py": [
+            "/tiles/offline/{region}",
+            "/mapping/layers",
+        ],
+        "backend/api/routers/hydrogeology.py": ["/hydro/slug-test", "/hydro/modflow"],
+        "backend/api/routers/urban.py": [
+            "/urban/classify-settlement",
+            "/urban/conflict-check",
+        ],
+        "backend/api/routers/infrastructure.py": [
+            "/infra/mining-assessment",
+            "/infra/pipeline-route",
+        ],
+        "backend/api/routers/satellite_phase4.py": [
+            "/satellite/scenes",
+            "/satellite/insar",
+        ],
+    }
+    for path, endpoints in checks.items():
+        source = Path(path).read_text()
+        for endpoint in endpoints:
+            assert endpoint in source
     assert 'run_kriging_pipeline' in source
 def test_api_main_defines_health_and_version_routes():
     source = Path("backend/api/main.py").read_text()

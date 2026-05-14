@@ -67,6 +67,12 @@ python-docx = "^1.1"
 pyinaturalist = "^0.19"
 pygbif = "^0.6"
 efficientnet-pytorch = "^0.7"
+py3dtiles = "^8.0"
+h3 = "^3.7"
+networkx = "^3.3"
+osmnx = "^1.9"
+earthaccess = "^0.9"
+flopy = "^3.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
