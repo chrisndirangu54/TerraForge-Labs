@@ -70,6 +70,12 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Added earth-observation correction contracts for GACOS/GNSS InSAR correction, hyperspectral atmospheric correction, and SAR polarimetry.
 - Added hydro/environment extensions for MODPATH capture zones, 3D ERT aquifer inversion, groundwater age dating, flood inundation, AERMOD/noise, haulage simulation, and structural assessment.
 - See `docs/phase4-gap-closure-addendum.md` for the full gap closure brief.
+
+
+## Phase 4 ethno-linguistics highlights
+- Added explicit ethno-linguistics support beyond geobotany local-name fields, with local term registration, toponym analysis, consent/attribution metadata, and redacted knowledge layers.
+- Added API and processing scaffolds for interpreting community place names and technical vocabulary into geoscience domains while preserving sensitivity restrictions.
+- See `docs/phase4-ethnolinguistics-addendum.md` for the full Track V addendum.
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope

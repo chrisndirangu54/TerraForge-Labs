@@ -84,6 +84,24 @@ def test_gap_closure_endpoint_sources_exist():
         "/platform/data-room",
     ]:
         assert endpoint in source
+
+
+def test_ethnolinguistics_router_registered():
+    source = Path("backend/api/main.py").read_text()
+    assert "ethnolinguistics_router" in source
+    assert "app.include_router(ethnolinguistics_router)" in source
+
+
+def test_ethnolinguistics_endpoint_sources_exist():
+    source = Path("backend/api/routers/ethnolinguistics.py").read_text()
+    for endpoint in [
+        "/ethnolinguistics/record-term",
+        "/ethnolinguistics/interpret-term",
+        "/ethnolinguistics/toponym-analysis",
+        "/ethnolinguistics/community-attribution",
+        "/ethnolinguistics/knowledge-layer",
+    ]:
+        assert endpoint in source
     assert 'run_kriging_pipeline' in source
 def test_api_main_defines_health_and_version_routes():
     source = Path("backend/api/main.py").read_text()

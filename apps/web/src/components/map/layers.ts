@@ -5,6 +5,7 @@ export const layerGroups = {
   infrastructure: ['road_network', 'power_grid', 'water_pipelines', 'telecoms_towers', 'haulage_route'],
   satellite: ['latest_sentinel2_rgb', 'sar_intensity', 'thermal', 'insar_deformation'],
   risk: ['flood_inundation_depth', 'soil_gas_anomalies', 'modpath_capture_zones', 'qaqc_failure_samples'],
+  communityKnowledge: ['ethnolinguistic_knowledge', 'toponym_interpretations', 'restricted_knowledge_redactions'],
 };
 
 export const mapModes = ['2d_street', '2d_satellite', '2d_hybrid', '3d_terrain', '3d_geological', 'google_satellite', 'google_photorealistic_3d'];

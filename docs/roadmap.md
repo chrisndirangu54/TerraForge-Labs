@@ -10,3 +10,6 @@ Phase 4 Expanded: Pan-African scale build across Tracks A-Q, prioritising Track 
 
 
 Phase 4 Gap Closure: Tracks R-U add drill planning optimisation, LIMS, QA/QC geochemistry, flood modelling, pathfinder/soil-gas analysis, EO corrections, MODPATH, 3D ERT, and investor data rooms.
+
+
+Phase 4 Track V: Ethno-Linguistics & Community Knowledge adds consented local term registries, toponym analysis, attribution reporting, and redacted knowledge layers across geobotany, hydrogeology, targeting, and urban risk workflows.
