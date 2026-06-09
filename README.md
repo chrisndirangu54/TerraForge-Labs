@@ -70,3 +70,17 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Added earth-observation correction contracts for GACOS/GNSS InSAR correction, hyperspectral atmospheric correction, and SAR polarimetry.
 - Added hydro/environment extensions for MODPATH capture zones, 3D ERT aquifer inversion, groundwater age dating, flood inundation, AERMOD/noise, haulage simulation, and structural assessment.
 - See `docs/phase4-gap-closure-addendum.md` for the full gap closure brief.
+AGPL-3.0 offline-first geological platform scaffold for Phase 0.
+
+## Phase 0 scope
+- FastAPI skeleton (`backend/api`) with `/health`, `/version`, and `/fuse-geodata` stub.
+- Django marketplace/admin scaffold (`backend/marketplace`) with `Dataset` model placeholders.
+- Shared constants + instrument parser protocol and stubs (`shared/`).
+- Local infra (`infra/docker-compose.yml`) for API, marketplace, PostGIS, Redis, MinIO.
+- Flutter app skeleton (`apps/mobile`) and docs baseline (`docs/`).
+
+## Quick start
+```bash
+cp .env.example .env
+docker compose -f infra/docker-compose.yml up --build
+```

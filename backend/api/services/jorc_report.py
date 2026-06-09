@@ -78,6 +78,9 @@ def build_jorc_report(payload: dict) -> dict:
         "disclaimer": DISCLAIMER,
         "sections": {},
     }
+def build_jorc_report(payload: dict) -> dict:
+    project = payload.get("project_name", "Matuu Pilot")
+    report = {"project": project, "disclaimer_acknowledged": False, "disclaimer": DISCLAIMER, "sections": {}}
 
     for sec, criteria in JORC_SECTIONS.items():
         if isinstance(criteria, list):
@@ -120,6 +123,8 @@ def build_jorc_report(payload: dict) -> dict:
     pdf_path.write_bytes(
         ("PDF-PLACEHOLDER\n" + DISCLAIMER + "\n" + json.dumps(report)).encode("utf-8")
     )
+    html_path.write_text(f"<html><body><h1>{project}</h1><p>{DISCLAIMER}</p><pre>{json.dumps(report, indent=2)}</pre></body></html>", encoding="utf-8")
+    pdf_path.write_bytes(("PDF-PLACEHOLDER\n" + DISCLAIMER + "\n" + json.dumps(report)).encode("utf-8"))
 
     return {
         "json_url": f"minio://reports/{json_path.name}",

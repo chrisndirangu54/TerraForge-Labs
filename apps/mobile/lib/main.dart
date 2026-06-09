@@ -14,6 +14,8 @@ import 'screens/infrastructure.dart';
 import 'screens/satellite_browser.dart';
 import 'screens/digital_twin.dart';
 import 'screens/offline_manager.dart';
+import 'screens/home.dart';
+import 'screens/login.dart';
 
 void main() {
   runApp(const TerraforgeApp());
