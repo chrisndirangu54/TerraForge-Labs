@@ -1,0 +1,7 @@
+[
+  {"name": "ASEG-GDF2 parser plugin", "price_usd": 0, "category": "plugin"},
+  {"name": "Geosoft .grd parser plugin", "price_usd": 0, "category": "plugin"},
+  {"name": "NI 43-101 report template", "price_usd": 49, "category": "template"},
+  {"name": "USGS MRDS Kenya dataset bundle", "price_usd": 0, "category": "dataset"},
+  {"name": "Kenya EL progress template", "price_usd": 29, "category": "template"}
+]
