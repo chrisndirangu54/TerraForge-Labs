@@ -4,4 +4,5 @@ export const phase4ApiEndpoints = {
   urban: ['/urban/classify-settlement', '/urban/service-access', '/urban/suitability', '/urban/conflict-check'],
   infrastructure: ['/infra/route', '/infra/pipeline-route', '/infra/mining-assessment'],
   satellite: ['/satellite/scenes', '/satellite/latest', '/satellite/change-detect', '/satellite/insar'],
+  gapClosure: ['/targeting/drill-plan-optimise', '/geochemistry/qaqc', '/platform/lims/sample-event', '/environment/flood-inundation'],
 };

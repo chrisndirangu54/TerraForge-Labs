@@ -62,6 +62,14 @@ Exploration teams in East Africa often work with fragmented, offline, and paper-
 - Added Track P infrastructure scaffolds for OSRM-style routing, grid proximity, pipeline routing, telecoms, and mining infrastructure assessment.
 - Added React web shell metadata and expanded Flutter navigation/dependencies for Phase 4 map, hydro, urban, infrastructure, satellite, twin, and offline workflows.
 - See `docs/phase4-expanded-brief.md` for the full expanded Phase 4 agent brief.
+
+
+## Phase 4 gap closure highlights
+- Added exploration targeting, pathfinder geochemistry, SGS risk simulation, and drill planning optimiser contracts.
+- Added QA/QC geochemistry, soil-gas interpretation, lightweight LIMS, tenement obligations, and investor data room scaffolds.
+- Added earth-observation correction contracts for GACOS/GNSS InSAR correction, hyperspectral atmospheric correction, and SAR polarimetry.
+- Added hydro/environment extensions for MODPATH capture zones, 3D ERT aquifer inversion, groundwater age dating, flood inundation, AERMOD/noise, haulage simulation, and structural assessment.
+- See `docs/phase4-gap-closure-addendum.md` for the full gap closure brief.
 AGPL-3.0 offline-first geological platform scaffold for Phase 0.
 
 ## Phase 0 scope

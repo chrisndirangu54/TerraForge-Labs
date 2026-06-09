@@ -7,3 +7,6 @@ Phase 4 Track Q: Geobotany & Biogeochemistry addendum for Weeks 62-80, covering 
 
 
 Phase 4 Expanded: Pan-African scale build across Tracks A-Q, prioritising Track M mapping, Track N hydrogeology, Track O urban planning, Track P infrastructure, and complete React/Flutter applications.
+
+
+Phase 4 Gap Closure: Tracks R-U add drill planning optimisation, LIMS, QA/QC geochemistry, flood modelling, pathfinder/soil-gas analysis, EO corrections, MODPATH, 3D ERT, and investor data rooms.

@@ -65,6 +65,25 @@ def test_phase4_expanded_endpoint_sources_exist():
         source = Path(path).read_text()
         for endpoint in endpoints:
             assert endpoint in source
+
+
+def test_gap_closure_router_registered():
+    source = Path("backend/api/main.py").read_text()
+    assert "gap_closure_router" in source
+    assert "app.include_router(gap_closure_router)" in source
+
+
+def test_gap_closure_endpoint_sources_exist():
+    source = Path("backend/api/routers/gap_closure.py").read_text()
+    for endpoint in [
+        "/targeting/drill-plan-optimise",
+        "/geochemistry/qaqc",
+        "/geochemistry/soil-gas",
+        "/environment/flood-inundation",
+        "/platform/lims/sample-event",
+        "/platform/data-room",
+    ]:
+        assert endpoint in source
     assert 'run_kriging_pipeline' in source
 def test_api_main_defines_health_and_version_routes():
     source = Path("backend/api/main.py").read_text()
