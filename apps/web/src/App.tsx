@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { DomainPage } from './pages/DomainPage';
+import { CloudGpuPage } from './pages/CloudGpuPage';
 import { UploadPage } from './pages/UploadPage';
 import { phase4Routes } from './routes';
 
@@ -12,6 +13,7 @@ export function App() {
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="upload" element={<UploadPage />} />
+          <Route path="cloud-gpu" element={<CloudGpuPage />} />
           {phase4Routes
             .filter((route) => route.path !== '/' && route.path !== '/upload')
             .map((route) => (

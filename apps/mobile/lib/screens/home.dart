@@ -27,6 +27,11 @@ class HomeScreen extends StatelessWidget {
             title: 'Classify Mineral',
             route: '/classify-mineral',
           ),
+          _NavCard(
+            icon: '⚡',
+            title: 'Cloud GPU Classify',
+            route: '/cloud-gpu',
+          ),
           _NavCard(icon: '🌿', title: 'Geobotany Survey', route: '/geobotany'),
           _NavCard(icon: '💧', title: 'Hydrogeology', route: '/hydro'),
           _NavCard(icon: '🏙', title: 'Urban Planning', route: '/urban'),

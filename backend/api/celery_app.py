@@ -16,5 +16,6 @@ if Celery:
     )
     celery_app.conf.task_time_limit = 600
     celery_app.conf.task_soft_time_limit = 540
+    celery_app.conf.imports = ("backend.api.tasks",)
 else:
     celery_app = None

@@ -61,4 +61,19 @@ class TerraforgeApi {
       'image_path': 'demo_thin_section.jpg',
     });
   }
+
+  Future<Map<String, dynamic>> gpuCapabilities() {
+    return _client.get('/classification/gpu/capabilities');
+  }
+
+  Future<Map<String, dynamic>> classifyGpuSync({
+    required String task,
+    String projectId = 'field-demo',
+  }) {
+    return _client.post('/classification/gpu/sync', {
+      'task': task,
+      'project_id': projectId,
+      'async': false,
+    });
+  }
 }

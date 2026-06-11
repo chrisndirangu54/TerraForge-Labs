@@ -20,6 +20,7 @@ export const phase4Routes: AppRoute[] = [
   { path: '/marketplace', page: 'Marketplace', domain: 'core', keyComponents: ['Catalogue', 'Stripe/M-Pesa', 'Install'] },
   { path: '/digital-twin', page: 'Digital Twin', domain: 'geology', keyComponents: ['4D viewer', 'Time slider', 'Alerts'] },
   { path: '/ar', page: 'AR Preview', domain: 'geology', keyComponents: ['WebXR launcher', 'Model selection'] },
+  { path: '/cloud-gpu', page: 'Cloud GPU', domain: 'geology', keyComponents: ['CUDA classify', 'Async jobs', 'Batch inference'] },
   { path: '/settings', page: 'Settings', domain: 'admin', keyComponents: ['Account', 'Billing', 'API keys', 'Map provider'] },
   { path: '/admin', page: 'Admin', domain: 'admin', keyComponents: ['Users', 'Usage analytics', 'Audit log'] },
 ];

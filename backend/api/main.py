@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.api.routers.cloud_classification import (
+    router as cloud_classification_router,
+)
 from backend.api.routers.compliance import router as compliance_router
 from backend.api.routers.ethnolinguistics import router as ethnolinguistics_router
 from backend.api.routers.gap_closure import router as gap_closure_router
@@ -44,6 +47,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(cloud_classification_router)
 app.include_router(geodata_router)
 app.include_router(instruments_router)
 app.include_router(modeling_router)

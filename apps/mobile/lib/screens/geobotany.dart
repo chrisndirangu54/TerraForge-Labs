@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../services/cloud_classification_service.dart';
 import '../services/geobotany_classifier.dart';
 
 class GeobotanyScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class GeobotanyScreen extends StatefulWidget {
 
 class _GeobotanyScreenState extends State<GeobotanyScreen> {
   final GeobotanyClassifierService _service = GeobotanyClassifierService();
+  final CloudClassificationService _cloud = CloudClassificationService();
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _result;
@@ -31,6 +33,25 @@ class _GeobotanyScreenState extends State<GeobotanyScreen> {
           'mineral_affinity': classification.mineralAffinity,
           'recommended_action': classification.recommendedAction,
         };
+        _loading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _classifyCloud() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final response = await _cloud.classifySync(task: 'geobotany');
+      setState(() {
+        _result = response['result'] as Map<String, dynamic>? ?? response;
         _loading = false;
       });
     } catch (error) {
@@ -83,7 +104,12 @@ class _GeobotanyScreenState extends State<GeobotanyScreen> {
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loading ? null : _classify,
-            child: const Text('Classify Plant'),
+            child: const Text('Classify Plant (API)'),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: _loading ? null : _classifyCloud,
+            child: const Text('Classify Plant (Cloud GPU)'),
           ),
           const SizedBox(height: 8),
           ElevatedButton(

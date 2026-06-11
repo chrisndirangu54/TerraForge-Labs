@@ -39,6 +39,21 @@ services:
     command: python -c "print('celery worker placeholder')"
     depends_on: [redis, db]
 
+  gpu_worker:
+    profiles: ["gpu"]
+    build:
+      context: ..
+      dockerfile: infra/Dockerfile.gpu-worker
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      NVIDIA_VISIBLE_DEVICES: all
+    depends_on: [redis, api]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+
   minio:
     image: minio/minio:latest
     command: server /data --console-address ":9001"

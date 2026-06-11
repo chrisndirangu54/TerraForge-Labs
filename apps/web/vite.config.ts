@@ -23,6 +23,7 @@ export default defineConfig({
       '/infra': 'http://localhost:8000',
       '/satellite': 'http://localhost:8000',
       '/geobotany': 'http://localhost:8000',
+      '/classification': 'http://localhost:8000',
     },
   },
 });

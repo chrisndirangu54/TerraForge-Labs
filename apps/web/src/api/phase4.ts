@@ -1,4 +1,10 @@
 export const phase4ApiEndpoints = {
+  cloudGpu: [
+    '/classification/gpu/capabilities',
+    '/classification/gpu',
+    '/classification/gpu/sync',
+    '/classification/gpu/batch',
+  ],
   mapping: ['/tiles/{z}/{x}/{y}', '/tiles/offline/{region}', '/basemap/sentinel2', '/mapping/layers'],
   hydrogeology: ['/hydro/slug-test', '/hydro/pump-test', '/hydro/water-quality', '/hydro/modflow'],
   urban: ['/urban/classify-settlement', '/urban/service-access', '/urban/suitability', '/urban/conflict-check'],
