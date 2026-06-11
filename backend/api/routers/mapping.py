@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
-from backend.api.auth.dependencies import require_mutating_access
+from backend.api.auth.dependencies import get_current_user, require_mutating_access
 from backend.api.services.storage import get_storage_service
-
+from backend.processing.raster_pipeline import (
+    get_stac_item,
+    ingest_raster,
+    list_stac_items,
+)
 from backend.processing.mapping_stack import (
     cesium_tileset_job,
     layer_catalogue,
@@ -51,6 +55,33 @@ async def sentinel2_basemap(bbox: str = "", date: str = "latest") -> dict:
         "date": date,
         "tile_url": storage.get_signed_url("basemaps/sentinel2/{z}/{x}/{y}.png"),
     }
+
+
+@router.post("/mapping/rasters/ingest", dependencies=[Depends(require_mutating_access)])
+async def ingest_raster_asset(payload: dict) -> dict:
+    return ingest_raster(payload)
+
+
+@router.get("/mapping/stac/items")
+async def query_stac_items(
+    collection: str | None = Query(default=None),
+    project_id: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    _: dict = Depends(get_current_user),
+) -> dict:
+    items = list_stac_items(collection=collection, project_id=project_id, limit=limit)
+    return {"items": items, "count": len(items)}
+
+
+@router.get("/mapping/stac/items/{item_id}")
+async def fetch_stac_item(
+    item_id: str,
+    _: dict = Depends(get_current_user),
+) -> dict:
+    item = get_stac_item(item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="STAC item not found")
+    return item
 
 
 @router.get("/mapping/layers")

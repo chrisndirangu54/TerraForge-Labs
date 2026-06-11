@@ -5,9 +5,8 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
+from backend.api.services.stac_catalog import get_stac_catalog
 from backend.api.services.storage import get_storage_service
-
-_STAC_ITEMS: dict[str, dict[str, Any]] = {}
 
 
 def _build_stac_item(
@@ -43,6 +42,7 @@ def _build_stac_item(
             "proj:epsg": metadata.get("epsg", 4326),
             "processing:level": metadata.get("processing_level", "L2A"),
             "terraforge:source": metadata.get("source", "synthetic"),
+            "terraforge:project_id": metadata.get("project_id"),
         },
         "assets": {
             "data": {
@@ -71,6 +71,7 @@ def ingest_raster(payload: dict[str, Any]) -> dict[str, Any]:
     """Ingest raster bytes/metadata, persist artifact, and register a STAC item."""
 
     storage = get_storage_service()
+    catalog = get_stac_catalog()
     bbox = [float(value) for value in payload.get("bbox", [37.45, -1.20, 37.55, -1.10])]
     raster_bytes = payload.get("raster_bytes")
     if raster_bytes is None:
@@ -90,7 +91,21 @@ def ingest_raster(payload: dict[str, Any]) -> dict[str, Any]:
         metadata={
             "bbox": bbox,
             "source": payload.get("source", "synthetic"),
+            "project_id": payload.get("project_id"),
         },
+    )
+
+    catalog.register_artifact(
+        {
+            "id": artifact["id"],
+            "project_id": payload.get("project_id"),
+            "artifact_type": "raster",
+            "storage_key": asset_key,
+            "content_type": "image/tiff",
+            "size_bytes": artifact["size_bytes"],
+            "checksum": artifact["checksum"],
+            "metadata": artifact.get("metadata", {}),
+        }
     )
 
     stac_item = _build_stac_item(
@@ -102,13 +117,18 @@ def ingest_raster(payload: dict[str, Any]) -> dict[str, Any]:
             "epsg": payload.get("epsg", 4326),
             "processing_level": payload.get("processing_level", "L2A"),
             "content_type": "image/tiff",
+            "project_id": payload.get("project_id"),
         },
     )
     stac_key = f"stac/items/{stac_item['id']}.json"
     storage.put(
         stac_key, json.dumps(stac_item, indent=2), content_type="application/json"
     )
-    _STAC_ITEMS[stac_item["id"]] = stac_item
+    catalog.register_stac_item(
+        item=stac_item,
+        artifact_id=artifact["id"],
+        project_id=payload.get("project_id"),
+    )
 
     tile_template = storage.get_signed_url("tiles/{z}/{x}/{y}.png")
     return {
@@ -116,18 +136,38 @@ def ingest_raster(payload: dict[str, Any]) -> dict[str, Any]:
         "artifact_id": artifact["id"],
         "artifact_key": asset_key,
         "artifact_url": storage.get_public_url(asset_key),
+        "artifact_signed_url": storage.get_signed_url(asset_key),
         "stac_url": storage.get_public_url(stac_key),
+        "stac_signed_url": storage.get_signed_url(stac_key),
         "tile_redirect_template": tile_template,
         "bbox": bbox,
+        "storage_backend": storage.backend,
     }
 
 
 def get_stac_item(item_id: str) -> dict[str, Any] | None:
-    return _STAC_ITEMS.get(item_id)
+    catalog = get_stac_catalog()
+    row = catalog.get_stac_item(item_id)
+    if row is None:
+        return None
+    storage = get_storage_service()
+    stac_key = f"stac/items/{item_id}.json"
+    return {
+        **row,
+        "item_id": row.get("item_id", item_id),
+        "stac_signed_url": storage.get_signed_url(stac_key),
+    }
 
 
-def list_stac_items() -> list[dict[str, Any]]:
-    return list(_STAC_ITEMS.values())
+def list_stac_items(
+    *,
+    collection: str | None = None,
+    project_id: str | None = None,
+    limit: int = 50,
+) -> list[dict[str, Any]]:
+    return get_stac_catalog().list_stac_items(
+        collection=collection, project_id=project_id, limit=limit
+    )
 
 
 def _synthetic_raster_bytes(width: int, height: int, *, seed: int) -> bytes:
@@ -140,4 +180,6 @@ def _synthetic_raster_bytes(width: int, height: int, *, seed: int) -> bytes:
 
 
 def reset_raster_pipeline() -> None:
-    _STAC_ITEMS.clear()
+    from backend.api.services.stac_catalog import reset_stac_catalog
+
+    reset_stac_catalog()

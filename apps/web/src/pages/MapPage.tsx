@@ -13,26 +13,30 @@ export function MapPage() {
   const [mapMode, setMapMode] = useState('2d_satellite');
   const [layerGroups, setLayerGroups] = useState<LayerGroup>({});
   const [tileMeta, setTileMeta] = useState<Record<string, unknown> | null>(null);
+  const [stacCount, setStacCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
+    const stacParams = selectedProject?.id ? { project_id: selectedProject.id } : undefined;
     Promise.all([
       apiGet<MappingLayersResponse>('/mapping/layers'),
       apiGet<Record<string, unknown>>('/tiles/10/500/400'),
+      apiGet<{ count: number }>('/mapping/stac/items', stacParams),
     ])
-      .then(([layers, tile]) => {
+      .then(([layers, tile, stac]) => {
         setLayerGroups(layers.layer_groups);
         if (layers.map_modes.length > 0) {
           setMapMode(layers.map_modes[0]);
         }
         setTileMeta(tile);
+        setStacCount(stac.count);
       })
       .catch((err) => setError(err instanceof Error ? err.message : String(err)))
       .finally(() => setLoading(false));
-  }, []);
+  }, [selectedProject?.id]);
 
   return (
     <div>
@@ -60,6 +64,10 @@ export function MapPage() {
           <MapView layerGroups={layerGroups} mapMode={mapMode} />
         </>
       ) : null}
+      <p style={{ marginTop: '0.75rem', color: '#555' }}>
+        STAC catalog: {stacCount} raster item{stacCount === 1 ? '' : 's'}
+        {selectedProject ? ` for ${selectedProject.name}` : ''}.
+      </p>
       {tileMeta ? (
         <details style={{ marginTop: '1rem' }}>
           <summary>Vector tile metadata</summary>

@@ -6,16 +6,35 @@ services:
     command: uvicorn backend.api.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    env_file:
+      - ../.env
     environment:
       REDIS_URL: redis://redis:6379/0
       JOB_STORE_BACKEND: postgres
       AUTH_STORE_BACKEND: postgres
+      INGEST_STORE_BACKEND: postgres
+      STAC_CATALOG_BACKEND: postgres
+      STORAGE_BACKEND: minio
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: terraforge
       DB_USER: postgres
       DB_PASSWORD: postgres
-    depends_on: [db, redis]
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: terraforge
+      MINIO_SECURE: "false"
+      LLM_PROVIDER: gemini
+      GEMINI_MODEL: gemini-2.5-flash
+      GEMINI_MAX_RPM: "12"
+    depends_on:
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
 
   marketplace:
     build:
@@ -48,16 +67,32 @@ services:
     command: >
       celery -A backend.api.celery_app:celery_app worker
       --loglevel=info -Q default,reports -c 2
+    env_file:
+      - ../.env
     environment:
       REDIS_URL: redis://redis:6379/0
       JOB_STORE_BACKEND: postgres
       AUTH_STORE_BACKEND: postgres
+      INGEST_STORE_BACKEND: postgres
+      STAC_CATALOG_BACKEND: postgres
+      STORAGE_BACKEND: minio
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: terraforge
       DB_USER: postgres
       DB_PASSWORD: postgres
-    depends_on: [redis, db]
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: terraforge
+      MINIO_SECURE: "false"
+    depends_on:
+      redis:
+        condition: service_started
+      db:
+        condition: service_started
+      minio-init:
+        condition: service_completed_successfully
 
   gpu_worker:
     profiles: ["gpu"]
@@ -67,9 +102,17 @@ services:
     command: >
       celery -A backend.api.celery_app:celery_app worker
       --loglevel=info -Q gpu -c 1
+    env_file:
+      - ../.env
     environment:
       REDIS_URL: redis://redis:6379/0
       JOB_STORE_BACKEND: postgres
+      STORAGE_BACKEND: minio
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: terraforge
+      MINIO_SECURE: "false"
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: terraforge
@@ -90,6 +133,26 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports: ["9000:9000", "9001:9001"]
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done;
+      mc mb local/terraforge --ignore-existing;
+      exit 0;
+      "
 
   prometheus:
     profiles: ["monitoring"]
@@ -133,5 +196,6 @@ configs:
 
 volumes:
   pgdata:
+  minio_data:
   prometheus_data:
   grafana_data:

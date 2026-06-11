@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from backend.api.main import app
 from backend.api.services.storage import get_storage_service, reset_storage_service
+from backend.api.services.stac_catalog import reset_stac_catalog
 from backend.processing.raster_pipeline import ingest_raster, reset_raster_pipeline
 
 client = TestClient(app)
@@ -9,6 +10,7 @@ client = TestClient(app)
 
 def setup_function() -> None:
     reset_storage_service()
+    reset_stac_catalog()
     reset_raster_pipeline()
 
 

@@ -43,6 +43,12 @@ Read routes (`GET`) remain available to authenticated users with project scope; 
 - Job status persisted in Postgres (`jobs`, `job_events`); optional Redis cache layer.
 - Model versions tracked in memory registry (or MLflow when `MODEL_REGISTRY_BACKEND=mlflow`).
 
+## Object storage
+
+- Production uses MinIO/S3 with `STORAGE_BACKEND=minio`; dev/tests default to memory.
+- STAC metadata in Postgres (`artifacts`, `stac_items`); blobs in object storage only.
+- Serve downloads via presigned URLs; do not expose bucket credentials to clients.
+
 ## LLM secrets
 
 - Store `LLM_API_KEY` only in local `.env` or a secrets manager — never in git.
