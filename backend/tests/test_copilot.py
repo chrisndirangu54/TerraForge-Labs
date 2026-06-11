@@ -16,6 +16,14 @@ def test_rag_query_enforces_citations():
     assert "JORC" in result["answer"] or "jorc" in result["answer"].lower()
 
 
+def test_copilot_status_endpoint():
+    response = client.get("/copilot/status")
+    assert response.status_code == 200
+    body = response.json()
+    assert "provider" in body
+    assert "active" in body
+
+
 def test_copilot_endpoints_return_cited_answers():
     response = client.post(
         "/copilot/query",

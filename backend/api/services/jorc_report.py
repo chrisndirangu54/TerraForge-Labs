@@ -6,6 +6,7 @@ from typing import Any
 from uuid import uuid4
 
 from backend.api.services.audit_v2 import get_audit_store
+from backend.api.services.jorc_pdf import build_jorc_pdf
 from backend.api.services.llm import generate_section
 from backend.api.services.storage import get_storage_service
 from backend.ml.registry import get_model_registry
@@ -190,7 +191,7 @@ def build_jorc_report(payload: dict) -> dict:
     )
     storage.put(
         pdf_key,
-        ("PDF-PLACEHOLDER\n" + DISCLAIMER + "\n" + json.dumps(report)).encode("utf-8"),
+        build_jorc_pdf(report, disclaimer=DISCLAIMER),
         content_type="application/pdf",
     )
 

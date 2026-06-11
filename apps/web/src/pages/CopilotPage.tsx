@@ -1,10 +1,18 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { apiGet, apiPost } from '../api/client';
 import { useProjectStore } from '../stores/projectStore';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
+  citations?: Array<{ id: string; title: string; source: string }>;
+};
+
+type CopilotResponse = {
+  answer: string;
+  citations: Array<{ id: string; title: string; source: string; excerpt?: string }>;
+  provider: string;
+  model: string;
 };
 
 export function CopilotPage() {
@@ -13,12 +21,24 @@ export function CopilotPage() {
     {
       role: 'assistant',
       content:
-        'Geo Copilot ready. Ask about vegetation anomalies, indicator species, or drill targeting for your project area.',
+        'Geo Copilot is connected to TerraForge RAG + Gemini. Ask about JORC sampling, kriging uncertainty, geobotany indicators, or drill targeting.',
     },
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [llmInfo, setLlmInfo] = useState<string>('');
+
+  useEffect(() => {
+    apiGet<{ provider: string; model: string; active: boolean; gemini_configured: boolean }>(
+      '/copilot/status',
+    )
+      .then((status) => {
+        const mode = status.active ? 'Gemini live' : 'stub fallback';
+        setLlmInfo(`${status.provider} / ${status.model} (${mode})`);
+      })
+      .catch(() => setLlmInfo('LLM status unavailable'));
+  }, []);
 
   async function askCopilot(event: FormEvent) {
     event.preventDefault();
@@ -31,60 +51,34 @@ export function CopilotPage() {
     setMessages((prev) => [...prev, { role: 'user', content: question }]);
 
     try {
-      const lower = question.toLowerCase();
-      let answer = '';
+      const result = await apiPost<CopilotResponse>('/copilot/query', {
+        query: question,
+        project_id: selectedProject?.id,
+        context: {
+          project_name: selectedProject?.name,
+          project_slug: selectedProject?.slug,
+        },
+      });
 
-      if (lower.includes('indicator') || lower.includes('species') || lower.includes('plant')) {
-        const indicators = await apiGet<{ records: Array<{ species: string; mineral_affinity: string }> }>(
-          '/geobotany/indicator-species',
-        );
-        const top = indicators.records.slice(0, 5);
-        answer = `Top indicator species near your AOI:\n${top
-          .map((r) => `• ${r.species} (${r.mineral_affinity})`)
-          .join('\n')}`;
-      } else if (lower.includes('anomaly') || lower.includes('stress') || lower.includes('vegetation')) {
-        const anomaly = await apiGet<Record<string, unknown>>('/geobotany/anomaly-map', {
-          project_id: selectedProject?.id ?? '',
-        });
-        answer = `Composite anomaly score: ${String(anomaly.composite_score ?? anomaly.score ?? 'n/a')}. ${
-          anomaly.interpretation ?? 'Vegetation stress and biogeochemistry suggest follow-up soil sampling.'
-        }`;
-      } else if (lower.includes('drill') || lower.includes('target')) {
-        const plan = await apiPost<Record<string, unknown>>('/targeting/drill-plan-optimise', {
-          targets: [
-            { hole_id: 'DDH-01', depth_m: 180, target_probability: 0.82, uncertainty_reduction: 0.65, lon: 37.5, lat: -1.15 },
-            { hole_id: 'DDH-02', depth_m: 220, target_probability: 0.74, uncertainty_reduction: 0.58, lon: 37.51, lat: -1.14 },
-          ],
-          budget_usd: 50000,
-        });
-        const holes = (plan.selected_holes as Array<Record<string, unknown>>) ?? [];
-        answer = `Recommended drill plan under $50k budget:\n${holes
-          .map((h) => `• ${String(h.hole_id)} — ${String(h.depth_m)} m (gain ${String(h.information_gain)})`)
-          .join('\n') || 'No holes selected within budget.'}`;
-      } else if (lower.includes('classify')) {
-        const result = await apiPost<Record<string, unknown>>('/geobotany/classify-plant', {
-          image_base64: '',
-          lon: 37.5,
-          lat: -1.15,
-          project_id: selectedProject?.id,
-        });
-        answer = `Classifier: ${String(result.accepted_species ?? result.species ?? 'unknown')} (confidence ${String(result.confidence ?? 'n/a')}). ${String(result.recommended_action ?? '')}`;
-      } else {
-        answer =
-          'I can help with indicator species, vegetation anomalies, drill targeting, and plant classification. Try: "Show indicator species" or "Optimise drill plan".';
-      }
-
+      let answer = result.answer;
       if (selectedProject) {
-        answer += `\n\nContext: ${selectedProject.name} (${selectedProject.slug})`;
+        answer += `\n\nProject context: ${selectedProject.name} (${selectedProject.slug})`;
       }
 
-      setMessages((prev) => [...prev, { role: 'assistant', content: answer }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: answer,
+          citations: result.citations,
+        },
+      ]);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: `Sorry, I could not reach the backend: ${message}` },
+        { role: 'assistant', content: `Sorry, copilot request failed: ${message}` },
       ]);
     } finally {
       setLoading(false);
@@ -94,7 +88,7 @@ export function CopilotPage() {
   return (
     <div>
       <h2>Geo Copilot</h2>
-      <p>Natural-language assistant wired to geobotany and targeting APIs.</p>
+      <p>Grounded geoscience assistant with citation enforcement. {llmInfo ? `Backend: ${llmInfo}` : null}</p>
 
       <div
         style={{
@@ -126,9 +120,16 @@ export function CopilotPage() {
                 border: msg.role === 'assistant' ? '1px solid #ddd' : 'none',
                 whiteSpace: 'pre-wrap',
                 maxWidth: '85%',
+                textAlign: 'left',
               }}
             >
               {msg.content}
+              {msg.citations?.length ? (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: '#555' }}>
+                  <strong>Citations:</strong>{' '}
+                  {msg.citations.map((c) => `[${c.id}] ${c.title}`).join(' · ')}
+                </div>
+              ) : null}
             </span>
           </div>
         ))}
@@ -139,7 +140,7 @@ export function CopilotPage() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about anomalies, species, or drill targets..."
+          placeholder="Ask about JORC, kriging, indicators, or targeting..."
           style={{ flex: 1 }}
           disabled={loading}
         />

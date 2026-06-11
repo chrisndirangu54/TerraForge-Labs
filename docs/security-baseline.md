@@ -43,6 +43,12 @@ Read routes (`GET`) remain available to authenticated users with project scope; 
 - Job status persisted in Postgres (`jobs`, `job_events`); optional Redis cache layer.
 - Model versions tracked in memory registry (or MLflow when `MODEL_REGISTRY_BACKEND=mlflow`).
 
+## LLM secrets
+
+- Store `LLM_API_KEY` only in local `.env` or a secrets manager — never in git.
+- CI sets `LLM_FORCE_STUB=true` so tests do not call external LLM APIs.
+- Rotate keys immediately if exposed in chat, logs, or screenshots.
+
 ## Client guidance
 
 - Mobile and web clients store tokens in memory/session and attach Bearer headers on API calls.
