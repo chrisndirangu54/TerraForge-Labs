@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.processing.ethnolinguistics import (
     community_attribution_report,
     interpret_local_term,
@@ -10,7 +12,7 @@ from backend.processing.ethnolinguistics import (
     toponym_analysis,
 )
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/ethnolinguistics/record-term")

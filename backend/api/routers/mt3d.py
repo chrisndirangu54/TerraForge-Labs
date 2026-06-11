@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.processing.geothermal_resource import estimate_geothermal_resource
 from backend.processing.inversion_3d_mt import run_mt3d_inversion
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/invert-mt-3d")

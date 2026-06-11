@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-router = APIRouter()
+from backend.api.auth.router import mutating_router
+
+router = mutating_router()
 
 
 @router.post("/marketplace/checkout")

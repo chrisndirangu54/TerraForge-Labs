@@ -7,7 +7,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from backend.api.auth.jwt import decode_access_token
 from backend.api.auth.repository import get_auth_repository
-from backend.api.auth.settings import AUTH_REQUIRED, VALID_ROLES
+from backend.api.auth.settings import VALID_ROLES, is_auth_required
 
 _bearer = HTTPBearer(auto_error=False)
 
@@ -47,7 +47,7 @@ async def get_current_user(
     user: Annotated[dict | None, Depends(get_optional_user)],
 ) -> dict:
     if user is None:
-        if AUTH_REQUIRED:
+        if is_auth_required():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Authentication required",
@@ -76,7 +76,7 @@ def require_roles(*roles: str):
 def require_mutating_access(
     user: Annotated[dict, Depends(get_current_user)],
 ) -> dict:
-    if AUTH_REQUIRED and user.get("id") == "anonymous":
+    if is_auth_required() and user.get("id") == "anonymous":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",

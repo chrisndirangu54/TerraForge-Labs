@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.api.auth.dependencies import require_mutating_access
 
 from backend.processing.geobotany_active_learning import (
     normalise_observation,
@@ -28,7 +30,7 @@ INDICATOR_SPECIES = [
 ]
 
 
-@router.post("/geobotany/classify-plant")
+@router.post("/geobotany/classify-plant", dependencies=[Depends(require_mutating_access)])
 async def classify_plant(payload: dict) -> dict:
     result = classify_plant_stub(payload.get("image_base64", ""))
     return {
@@ -39,7 +41,7 @@ async def classify_plant(payload: dict) -> dict:
     }
 
 
-@router.post("/geobotany/log-observation")
+@router.post("/geobotany/log-observation", dependencies=[Depends(require_mutating_access)])
 async def log_observation(payload: dict) -> dict:
     observation = normalise_observation(payload)
     return {
@@ -50,7 +52,7 @@ async def log_observation(payload: dict) -> dict:
     }
 
 
-@router.post("/geobotany/stress-map")
+@router.post("/geobotany/stress-map", dependencies=[Depends(require_mutating_access)])
 async def stress_map(payload: dict) -> dict:
     bands = payload.get(
         "bands",
@@ -73,7 +75,7 @@ async def stress_map(payload: dict) -> dict:
     return {"job_id": "geobotany-stress-job-1", "indices": indices, **stress}
 
 
-@router.post("/geobotany/biogeochem-upload")
+@router.post("/geobotany/biogeochem-upload", dependencies=[Depends(require_mutating_access)])
 async def biogeochem_upload(payload: dict) -> dict:
     filepath = payload.get("filepath")
     if filepath:
@@ -118,7 +120,7 @@ async def indicator_species(bbox: str = "") -> dict:
     }
 
 
-@router.post("/geobotany/survey-plan")
+@router.post("/geobotany/survey-plan", dependencies=[Depends(require_mutating_access)])
 async def survey_plan(payload: dict) -> dict:
     return build_survey_plan(
         payload.get("bbox", [37.45, -1.20, 37.55, -1.10]),

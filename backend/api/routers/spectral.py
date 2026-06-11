@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from shared.instruments.hyperspectral import parse_envi
 from shared.instruments.lidar_drone import parse as parse_lidar
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/fuse-spectral")

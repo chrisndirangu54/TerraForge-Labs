@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from shared.instruments.thin_section import classify_thin_section
 from shared.instruments.xrd_bruker import parse_xrd
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/classify-thin-section")

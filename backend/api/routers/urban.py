@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.api.auth.dependencies import require_mutating_access
 
 from backend.processing.urban_analysis import (
     classify_settlement,
@@ -13,12 +15,12 @@ from backend.processing.urban_analysis import (
 router = APIRouter()
 
 
-@router.post("/urban/classify-settlement")
+@router.post("/urban/classify-settlement", dependencies=[Depends(require_mutating_access)])
 async def classify_settlement_endpoint(payload: dict) -> dict:
     return classify_settlement(payload)
 
 
-@router.post("/urban/service-access")
+@router.post("/urban/service-access", dependencies=[Depends(require_mutating_access)])
 async def service_access_endpoint(payload: dict) -> dict:
     return service_access(
         float(payload.get("distance_km", 2.5)),
@@ -26,12 +28,12 @@ async def service_access_endpoint(payload: dict) -> dict:
     )
 
 
-@router.post("/urban/suitability")
+@router.post("/urban/suitability", dependencies=[Depends(require_mutating_access)])
 async def suitability_endpoint(payload: dict) -> dict:
     return suitability_score(payload)
 
 
-@router.post("/urban/conflict-check")
+@router.post("/urban/conflict-check", dependencies=[Depends(require_mutating_access)])
 async def conflict_endpoint(payload: dict) -> dict:
     return mining_settlement_conflict(float(payload.get("distance_m", 500)))
 

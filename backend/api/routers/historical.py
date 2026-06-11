@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.processing.ocr_borehole import extract_borehole_intervals
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/ingest-historical")

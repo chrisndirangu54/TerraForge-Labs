@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.api.services.audit_v2 import build_audit_event
 from backend.api.services.jorc_v2 import (
     generate_kenya_el_report,
     generate_ni43101_report,
 )
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/reports/ni43101")

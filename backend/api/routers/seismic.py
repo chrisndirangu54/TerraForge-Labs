@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.processing.gravity_reduction import run_gravity_reduction
 from backend.processing.inversion_2d import run_inversion_2d
 from backend.processing.inversion_mt import run_mt_inversion
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/fuse-seismic")

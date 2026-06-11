@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.api.auth.dependencies import require_mutating_access
 
 from backend.processing.groundwater_model import (
     borehole_siting_report,
@@ -13,7 +15,7 @@ from backend.processing.groundwater_model import (
 router = APIRouter()
 
 
-@router.post("/hydro/slug-test")
+@router.post("/hydro/slug-test", dependencies=[Depends(require_mutating_access)])
 async def slug_test(payload: dict) -> dict:
     return slug_test_conductivity(
         payload.get("recovery", [1.0, 0.7, 0.45, 0.2]),
@@ -21,18 +23,18 @@ async def slug_test(payload: dict) -> dict:
     )
 
 
-@router.post("/hydro/pump-test")
+@router.post("/hydro/pump-test", dependencies=[Depends(require_mutating_access)])
 async def pump_test(payload: dict) -> dict:
     drawdown = payload.get("drawdown_m", [1 + i * 0.05 for i in range(20)])
     return pumping_test_theis(drawdown, float(payload.get("pumping_rate_m3_day", 250)))
 
 
-@router.post("/hydro/water-quality")
+@router.post("/hydro/water-quality", dependencies=[Depends(require_mutating_access)])
 async def water_quality(payload: dict) -> dict:
     return water_quality_compliance(payload)
 
 
-@router.post("/hydro/modflow")
+@router.post("/hydro/modflow", dependencies=[Depends(require_mutating_access)])
 async def modflow(payload: dict) -> dict:
     return build_modflow_model(
         payload.get("bbox", [37.45, -1.2, 37.55, -1.1]),
@@ -41,7 +43,7 @@ async def modflow(payload: dict) -> dict:
     )
 
 
-@router.post("/hydro/borehole-siting")
+@router.post("/hydro/borehole-siting", dependencies=[Depends(require_mutating_access)])
 async def borehole_siting(payload: dict) -> dict:
     return borehole_siting_report(
         payload.get("location", {"lon": 37.48, "lat": -1.15}),

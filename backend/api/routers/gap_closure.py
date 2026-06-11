@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.processing.gap_closure import (
     dispersion_model,
     earth_observation_correction,
@@ -22,7 +24,7 @@ from backend.processing.gap_closure import (
     traffic_haulage_simulation,
 )
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/targeting/pathfinder-analysis")

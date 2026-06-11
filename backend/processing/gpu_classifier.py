@@ -8,6 +8,7 @@ import io
 import time
 from typing import Any
 
+from backend.ml.registry import get_model_registry
 from shared.constants import MINERAL_CLASSES
 
 SUPPORTED_TASKS = (
@@ -153,12 +154,29 @@ def _load_image_tensor(payload: dict[str, Any], device: Any) -> Any:
     return normalized.to(device)
 
 
+def _resolve_production_model(task: str) -> dict[str, Any]:
+    production = get_model_registry().get_production(task)
+    if production is not None:
+        return production
+    return {
+        "version": "builtin",
+        "params": {"backbone": "torchvision-resnet18", "feature_dim": 512},
+        "artifact_path": None,
+        "metrics": {},
+    }
+
+
 def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
     import torch
     import torch.nn as nn
     from torchvision import models
 
     labels = TASK_LABELS[task]
+    model_record = _resolve_production_model(task)
+    model_params = model_record.get("params") or {}
+    feature_dim = int(model_params.get("feature_dim", 512))
+    backbone_name = str(model_params.get("backbone", "torchvision-resnet18"))
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_amp = device.type == "cuda"
 
@@ -177,7 +195,7 @@ def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
     seed = _task_seed(task, payload)
     generator = torch.Generator(device=device)
     generator.manual_seed(seed)
-    head = nn.Linear(512, len(labels))
+    head = nn.Linear(feature_dim, len(labels))
     nn.init.xavier_uniform_(head.weight, generator=generator)
     head.eval()
     head.to(device)
@@ -216,8 +234,10 @@ def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
         "mixed_precision": use_amp,
         "batch_size": int(payload.get("batch_size", 1)),
         "inference_ms": elapsed_ms,
-        "model": "torchvision-resnet18",
-        "feature_dim": 512,
+        "model": backbone_name,
+        "model_version": model_record.get("version"),
+        "registry_artifact": model_record.get("artifact_path"),
+        "feature_dim": feature_dim,
     }
 
 
@@ -231,9 +251,12 @@ def classify_gpu(task: str, payload: dict[str, Any]) -> dict[str, Any]:
 
         result = _torch_classify(task, payload)
     except ImportError:
+        model_record = _resolve_production_model(task)
         result = _fallback_classify(task, payload)
         result["inference_ms"] = round((time.perf_counter() - started) * 1000, 2)
         result["model"] = "numpy-fallback"
+        result["model_version"] = model_record.get("version")
+        result["registry_artifact"] = model_record.get("artifact_path")
 
     device_info = get_device_info()
     result.update(

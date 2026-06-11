@@ -34,7 +34,7 @@ async def gpu_capabilities() -> dict:
 @router.post("/classification/gpu")
 async def submit_gpu_classification(
     payload: dict,
-    _: dict = Depends(require_mutating_access),
+    user: dict = Depends(require_mutating_access),
 ) -> dict:
     task = payload.get("task", "mineral")
     if task not in SUPPORTED_TASKS:
@@ -46,13 +46,14 @@ async def submit_gpu_classification(
         celery_task=celery_gpu_classification,
         meta={"task": task, "accelerator": "gpu-queue"},
         async_default=True,
+        user=user,
     )
 
 
 @router.post("/classification/gpu/sync")
 async def submit_gpu_classification_sync(
     payload: dict,
-    _: dict = Depends(require_mutating_access),
+    user: dict = Depends(require_mutating_access),
 ) -> dict:
     task = payload.get("task", "mineral")
     if task not in SUPPORTED_TASKS:
@@ -65,13 +66,14 @@ async def submit_gpu_classification_sync(
         celery_task=celery_gpu_classification,
         meta={"task": task},
         async_default=False,
+        user=user,
     )
 
 
 @router.post("/classification/gpu/batch")
 async def submit_gpu_classification_batch(
     payload: dict,
-    _: dict = Depends(require_mutating_access),
+    user: dict = Depends(require_mutating_access),
 ) -> dict:
     task = payload.get("task", "mineral")
     if task not in SUPPORTED_TASKS:
@@ -96,6 +98,7 @@ async def submit_gpu_classification_batch(
             celery_task=celery_gpu_classification,
             meta={"task": task, "batch": True, "count": len(items)},
             async_default=True,
+            user=user,
         )
 
     result = classify_gpu_batch(task, items)

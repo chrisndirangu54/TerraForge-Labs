@@ -24,6 +24,7 @@ from backend.api.routers.marketplace_payments import (
 )
 from backend.api.routers.mission import router as mission_router
 from backend.api.routers.modeling import router as modeling_router
+from backend.api.routers.models import router as models_router
 from backend.api.routers.mt3d import router as mt3d_router
 from backend.api.routers.paleontology import router as paleontology_router
 from backend.api.routers.petrography import router as petrography_router
@@ -57,6 +58,7 @@ app.include_router(geodata_router)
 app.include_router(ingest_router)
 app.include_router(instruments_router)
 app.include_router(modeling_router)
+app.include_router(models_router)
 app.include_router(reports_router)
 app.include_router(jobs_router)
 app.include_router(spectral_router)

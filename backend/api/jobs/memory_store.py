@@ -38,6 +38,7 @@ class MemoryJobStore(JobStore):
         offset: int = 0,
         status: str | None = None,
         job_type: str | None = None,
+        project_ids: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         items = []
         for job_id, job in self._jobs.items():
@@ -45,6 +46,10 @@ class MemoryJobStore(JobStore):
                 continue
             if job_type and job.get("job_type") != job_type:
                 continue
+            job_project_id = job.get("project_id")
+            if project_ids is not None:
+                if job_project_id is None or job_project_id not in project_ids:
+                    continue
             items.append({"job_id": job_id, **job})
         items.sort(key=lambda item: item.get("updated_at", ""), reverse=True)
         return items[offset : offset + limit]

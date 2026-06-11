@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.api.auth.dependencies import require_mutating_access
 
 from backend.processing.infrastructure import (
     mining_infrastructure_assessment,
@@ -13,7 +15,7 @@ from backend.processing.infrastructure import (
 router = APIRouter()
 
 
-@router.post("/infra/route")
+@router.post("/infra/route", dependencies=[Depends(require_mutating_access)])
 async def infra_route(payload: dict) -> dict:
     return route_assessment(
         payload.get("origin", [37.48, -1.15]),
@@ -22,7 +24,7 @@ async def infra_route(payload: dict) -> dict:
     )
 
 
-@router.post("/infra/pipeline-route")
+@router.post("/infra/pipeline-route", dependencies=[Depends(require_mutating_access)])
 async def infra_pipeline_route(payload: dict) -> dict:
     return pipeline_route(
         payload.get("source", [37.48, -1.15]),
@@ -31,7 +33,7 @@ async def infra_pipeline_route(payload: dict) -> dict:
     )
 
 
-@router.post("/infra/mining-assessment")
+@router.post("/infra/mining-assessment", dependencies=[Depends(require_mutating_access)])
 async def infra_mining_assessment(payload: dict) -> dict:
     return mining_infrastructure_assessment(payload)
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.auth.dependencies import get_current_user, require_roles
+from backend.api.auth.projects import ensure_project_access
 from backend.api.auth.models import (
     MembershipRequest,
     ProjectCreateRequest,
@@ -41,8 +42,9 @@ async def create_project(
 @router.get("/{project_id}/members")
 async def list_project_members(
     project_id: str,
-    _: dict = Depends(require_roles("admin", "geologist")),
+    user: dict = Depends(require_roles("admin", "geologist")),
 ) -> list[dict]:
+    ensure_project_access(user, project_id)
     repo = get_auth_repository()
     return repo.list_memberships(project_id)
 
@@ -51,8 +53,9 @@ async def list_project_members(
 async def add_project_member(
     project_id: str,
     payload: MembershipRequest,
-    _: dict = Depends(require_roles("admin")),
+    user: dict = Depends(require_roles("admin")),
 ) -> dict:
+    ensure_project_access(user, project_id)
     repo = get_auth_repository()
     try:
         return repo.add_membership(project_id, payload.user_id, payload.role)

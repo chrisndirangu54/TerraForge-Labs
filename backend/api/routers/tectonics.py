@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from backend.processing.tectonic_context import infer_tectonic_context
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/tectonic-context")

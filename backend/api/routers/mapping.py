@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+
+from backend.api.auth.dependencies import require_mutating_access
 
 from backend.processing.mapping_stack import (
     cesium_tileset_job,
@@ -47,7 +49,7 @@ async def provider_plan(use_google: bool = False) -> dict:
     return map_provider_plan(use_google)
 
 
-@router.post("/mapping/cesium-tileset")
+@router.post("/mapping/cesium-tileset", dependencies=[Depends(require_mutating_access)])
 async def cesium_tileset(payload: dict) -> dict:
     return cesium_tileset_job(
         payload.get("job_id", "matuu"),

@@ -22,6 +22,7 @@ class IngestStore(ABC):
         self,
         *,
         project_id: str | None = None,
+        project_ids: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
@@ -59,12 +60,18 @@ class MemoryIngestStore(IngestStore):
         self,
         *,
         project_id: str | None = None,
+        project_ids: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
         items = self._rows
         if project_id:
             items = [row for row in items if row["project_id"] == project_id]
+        elif project_ids is not None:
+            if not project_ids:
+                return []
+            allowed = set(project_ids)
+            items = [row for row in items if row["project_id"] in allowed]
         return items[offset : offset + limit]
 
 
@@ -113,6 +120,7 @@ class PostgresIngestStore(IngestStore):
         self,
         *,
         project_id: str | None = None,
+        project_ids: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
@@ -123,6 +131,12 @@ class PostgresIngestStore(IngestStore):
         if project_id:
             clauses.append("project_id = %s::uuid")
             params.append(project_id)
+        elif project_ids is not None:
+            if not project_ids:
+                return []
+            placeholders = ", ".join(["%s::uuid"] * len(project_ids))
+            clauses.append(f"project_id IN ({placeholders})")
+            params.extend(project_ids)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         params.extend([limit, offset])
         query = f"""

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from backend.api.auth.router import mutating_router
+
 from apps.field_agent.terraforge_agent import run_agent_cycle
 
-router = APIRouter()
+router = mutating_router()
 
 
 @router.post("/plan-mission")

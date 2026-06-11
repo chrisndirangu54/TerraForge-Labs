@@ -30,6 +30,7 @@ class JobStore(ABC):
         offset: int = 0,
         status: str | None = None,
         job_type: str | None = None,
+        project_ids: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError
 

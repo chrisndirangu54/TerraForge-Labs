@@ -18,7 +18,7 @@ router = APIRouter()
 @router.post("/fuse-geodata")
 async def fuse_geodata(
     payload: dict,
-    _: dict = Depends(require_mutating_access),
+    user: dict = Depends(require_mutating_access),
 ) -> dict:
     payload.setdefault("grid_resolution_m", KRIGING_GRID_RESOLUTION)
     payload.setdefault("max_points", KRIGING_MAX_POINTS)
@@ -30,4 +30,5 @@ async def fuse_geodata(
         celery_task=celery_run_kriging,
         async_default=True,
         meta={"pipeline": run_kriging_pipeline.__name__},
+        user=user,
     )

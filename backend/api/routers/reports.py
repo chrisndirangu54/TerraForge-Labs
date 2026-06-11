@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/reports/jorc")
 async def generate_jorc(
     payload: dict,
-    _: dict = Depends(require_mutating_access),
+    user: dict = Depends(require_mutating_access),
 ) -> dict:
     return submit_job(
         job_type="jorc_report",
@@ -20,4 +20,5 @@ async def generate_jorc(
         runner=generate_jorc_report,
         celery_task=celery_generate_jorc_report,
         async_default=True,
+        user=user,
     )

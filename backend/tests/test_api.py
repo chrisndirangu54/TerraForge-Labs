@@ -23,10 +23,13 @@ def test_api_main_includes_geobotany_router():
 
 def test_geobotany_router_defines_track_q_endpoints():
     source = Path("backend/api/routers/geobotany.py").read_text()
-    assert '@router.post("/geobotany/classify-plant")' in source
-    assert '@router.post("/geobotany/stress-map")' in source
-    assert '@router.post("/geobotany/biogeochem-upload")' in source
-    assert '@router.post("/geobotany/survey-plan")' in source
+    for route in (
+        "/geobotany/classify-plant",
+        "/geobotany/stress-map",
+        "/geobotany/biogeochem-upload",
+        "/geobotany/survey-plan",
+    ):
+        assert f'@router.post("{route}"' in source
 
 
 def test_phase4_expanded_routers_registered():

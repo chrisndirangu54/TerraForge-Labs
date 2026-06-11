@@ -5,8 +5,10 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 
+from backend.api.auth.dependencies import require_mutating_access
+from backend.api.auth.projects import require_project_id_when_authenticated
 from backend.api.services.ingest import (
     ingest_observations,
     parser_version_for,
@@ -37,12 +39,15 @@ async def upload_instrument_file(
     project_id: str | None = Form(default=None),
     gps_file: UploadFile | None = File(default=None),
     calibration_file: UploadFile | None = File(default=None),
+    user: dict = Depends(require_mutating_access),
 ) -> dict:
     if instrument_type not in PARSER_REGISTRY:
         return {"error": f"Unsupported instrument_type: {instrument_type}"}
 
     upload_id = str(uuid.uuid4())
-    resolved_project_id = project_id or str(uuid.uuid4())
+    resolved_project_id = require_project_id_when_authenticated(user, project_id)
+    if not resolved_project_id:
+        resolved_project_id = str(uuid.uuid4())
     upload_dir = UPLOAD_ROOT / instrument_type / upload_id
     upload_dir.mkdir(parents=True, exist_ok=True)
 
