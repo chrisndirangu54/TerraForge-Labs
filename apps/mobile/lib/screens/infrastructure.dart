@@ -6,7 +6,11 @@ class InfrastructureScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Infrastructure: roads, power grid, pipelines, telecoms, haulage')),
+      body: Center(
+        child: Text(
+          'Infrastructure: roads, power grid, pipelines, telecoms, haulage',
+        ),
+      ),
     );
   }
 }

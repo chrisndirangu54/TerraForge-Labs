@@ -6,7 +6,11 @@ class HydrogeologyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Hydrogeology map: water table, boreholes, aquifers, MODFLOW outputs')),
+      body: Center(
+        child: Text(
+          'Hydrogeology map: water table, boreholes, aquifers, MODFLOW outputs',
+        ),
+      ),
     );
   }
 }

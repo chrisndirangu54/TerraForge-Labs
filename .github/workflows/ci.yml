@@ -16,10 +16,10 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - run: pip install poetry && poetry install
-      - run: black --check backend/ shared/
-      - run: ruff check backend/ shared/
-      - run: mypy backend/ shared/
-      - run: pytest backend/ --cov=backend --cov-report=term-missing
+      - run: poetry run black --check backend/ shared/
+      - run: poetry run ruff check backend/ shared/
+      - run: poetry run mypy backend/ shared/
+      - run: poetry run pytest backend/ --cov=backend --cov-report=term-missing
 
   mobile:
     runs-on: ubuntu-latest

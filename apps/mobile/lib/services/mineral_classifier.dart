@@ -5,12 +5,17 @@ class MineralClassification {
   final double confidence;
   final List<Map<String, dynamic>> top3;
 
-  MineralClassification({required this.label, required this.confidence, required this.top3});
+  MineralClassification({
+    required this.label,
+    required this.confidence,
+    required this.top3,
+  });
 }
 
 class MineralClassifierService {
   static const double confidenceThreshold = 0.70;
-  static const String modelAsset = 'assets/models/mineral_classifier_int8.tflite';
+  static const String modelAsset =
+      'assets/models/mineral_classifier_int8.tflite';
 
   Future<void> loadModel() async {}
 

@@ -6,7 +6,11 @@ class UrbanScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Urban planning: settlements, land use, population, service gaps')),
+      body: Center(
+        child: Text(
+          'Urban planning: settlements, land use, population, service gaps',
+        ),
+      ),
     );
   }
 }

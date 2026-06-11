@@ -6,7 +6,11 @@ class SatelliteBrowserScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Satellite browser: Sentinel-2, SAR, thermal, change detection')),
+      body: Center(
+        child: Text(
+          'Satellite browser: Sentinel-2, SAR, thermal, change detection',
+        ),
+      ),
     );
   }
 }

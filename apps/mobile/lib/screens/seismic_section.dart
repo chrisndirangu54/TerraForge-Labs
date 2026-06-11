@@ -5,6 +5,8 @@ class SeismicSectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Seismic section viewer (Phase 2 scaffold)')));
+    return const Scaffold(
+      body: Center(child: Text('Seismic section viewer (Phase 2 scaffold)')),
+    );
   }
 }

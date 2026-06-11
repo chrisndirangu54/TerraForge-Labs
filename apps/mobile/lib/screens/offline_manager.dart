@@ -6,7 +6,11 @@ class OfflineManagerScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Offline manager: PMTiles country packs, cached scenes, sync status')),
+      body: Center(
+        child: Text(
+          'Offline manager: PMTiles country packs, cached scenes, sync status',
+        ),
+      ),
     );
   }
 }

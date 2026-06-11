@@ -36,7 +36,8 @@ class GeobotanyObservationDraft {
 
 class GeobotanyClassifierService {
   static const double confidenceThreshold = 0.65;
-  static const String modelAsset = 'assets/models/geobotany_classifier_int8.tflite';
+  static const String modelAsset =
+      'assets/models/geobotany_classifier_int8.tflite';
 
   Future<void> loadModel() async {}
 

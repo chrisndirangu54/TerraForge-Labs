@@ -17,7 +17,11 @@ class HomeScreen extends StatelessWidget {
           ),
           _NavCard(icon: '🧭', title: 'Main Map', route: '/map'),
           _NavCard(icon: '🌐', title: '3D Viewer', route: '/map/3d'),
-          _NavCard(icon: '🗺', title: 'View Kriging Map', route: '/kriging-map'),
+          _NavCard(
+            icon: '🗺',
+            title: 'View Kriging Map',
+            route: '/kriging-map',
+          ),
           _NavCard(
             icon: '🔬',
             title: 'Classify Mineral',

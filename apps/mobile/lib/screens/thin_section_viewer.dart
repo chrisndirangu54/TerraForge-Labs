@@ -5,6 +5,8 @@ class ThinSectionViewerScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Thin section viewer (Phase 2 scaffold)')));
+    return const Scaffold(
+      body: Center(child: Text('Thin section viewer (Phase 2 scaffold)')),
+    );
   }
 }

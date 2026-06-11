@@ -6,7 +6,11 @@ class DigitalTwinScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('Digital twin: compressed 3D model, alerts, model divergence')),
+      body: Center(
+        child: Text(
+          'Digital twin: compressed 3D model, alerts, model divergence',
+        ),
+      ),
     );
   }
 }

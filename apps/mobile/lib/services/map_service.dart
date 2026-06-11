@@ -3,7 +3,11 @@ class OfflineMapPack {
   final String pmtilesPath;
   final int estimatedSizeMb;
 
-  const OfflineMapPack({required this.region, required this.pmtilesPath, required this.estimatedSizeMb});
+  const OfflineMapPack({
+    required this.region,
+    required this.pmtilesPath,
+    required this.estimatedSizeMb,
+  });
 }
 
 class MapService {
@@ -13,7 +17,9 @@ class MapService {
   OfflineMapPack kenyaPack({bool includeSatellite = true}) {
     return OfflineMapPack(
       region: 'kenya',
-      pmtilesPath: includeSatellite ? 'kenya_satellite.pmtiles' : 'kenya_osm.pmtiles',
+      pmtilesPath: includeSatellite
+          ? 'kenya_satellite.pmtiles'
+          : 'kenya_osm.pmtiles',
       estimatedSizeMb: includeSatellite ? 2048 : 800,
     );
   }

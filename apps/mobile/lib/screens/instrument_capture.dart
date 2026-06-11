@@ -5,6 +5,8 @@ class InstrumentCaptureScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: Text('Instrument Capture (Phase 1)')));
+    return const Scaffold(
+      body: Center(child: Text('Instrument Capture (Phase 1)')),
+    );
   }
 }

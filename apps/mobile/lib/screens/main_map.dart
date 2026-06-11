@@ -6,7 +6,11 @@ class MainMapScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('MapLibre 2D/satellite/hybrid map with PMTiles offline packs')),
+      body: Center(
+        child: Text(
+          'MapLibre 2D/satellite/hybrid map with PMTiles offline packs',
+        ),
+      ),
     );
   }
 }

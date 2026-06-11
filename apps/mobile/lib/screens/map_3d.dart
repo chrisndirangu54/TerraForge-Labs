@@ -6,7 +6,9 @@ class Map3dScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      body: Center(child: Text('CesiumJS 3D geological model viewer via WebView')),
+      body: Center(
+        child: Text('CesiumJS 3D geological model viewer via WebView'),
+      ),
     );
   }
 }
