@@ -15,6 +15,29 @@ def _set(job_id: str, job_type: str, **data: object) -> None:
     store.set(job_id, {"job_type": job_type, **data})
 
 
+def _mark_dead_letter(
+    job_id: str,
+    job_type: str,
+    exc: Exception,
+    *,
+    retries: int,
+    task_name: str,
+) -> None:
+    _set(
+        job_id,
+        job_type,
+        status="failed",
+        error=str(exc),
+        dead_letter={
+            "reason": str(exc),
+            "job_type": job_type,
+            "task": task_name,
+            "retries": retries,
+            "final": True,
+        },
+    )
+
+
 def run_kriging(job_id: str, payload: dict) -> dict:
     from backend.api.kriging import run_kriging_pipeline
 
@@ -60,8 +83,43 @@ def run_gpu_classification(job_id: str, payload: dict) -> dict:
     return result
 
 
-if celery_app is not None:
+def _wrap_celery_task(name: str, job_type: str, runner):
+    if celery_app is None:
+        return None
 
-    @celery_app.task(name="terraforge.run_gpu_classification")
-    def celery_gpu_classification(job_id: str, payload: dict) -> dict:
-        return run_gpu_classification(job_id, payload)
+    max_retries = 1
+
+    @celery_app.task(bind=True, name=name)
+    def _task(self, job_id: str, payload: dict) -> dict:
+        last_exc: Exception | None = None
+        for attempt in range(max_retries + 1):
+            try:
+                return runner(job_id, payload)
+            except Exception as exc:
+                last_exc = exc
+                if attempt < max_retries:
+                    continue
+                _mark_dead_letter(
+                    job_id,
+                    job_type,
+                    exc,
+                    retries=attempt,
+                    task_name=name,
+                )
+                raise
+        assert last_exc is not None
+        raise last_exc
+
+    return _task
+
+
+celery_run_kriging = _wrap_celery_task("terraforge.run_kriging", "kriging", run_kriging)
+celery_run_deposit_model = _wrap_celery_task(
+    "terraforge.run_deposit_model", "deposit_model", run_deposit_model
+)
+celery_generate_jorc_report = _wrap_celery_task(
+    "terraforge.generate_jorc_report", "jorc_report", generate_jorc_report
+)
+celery_gpu_classification = _wrap_celery_task(
+    "terraforge.run_gpu_classification", "gpu_classification", run_gpu_classification
+)

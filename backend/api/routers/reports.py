@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, Depends
 
 from backend.api.auth.dependencies import require_mutating_access
-from backend.api.tasks import generate_jorc_report
+from backend.api.jobs.enqueue import submit_job
+from backend.api.tasks import celery_generate_jorc_report, generate_jorc_report
 
 router = APIRouter()
 
@@ -15,6 +14,10 @@ async def generate_jorc(
     payload: dict,
     _: dict = Depends(require_mutating_access),
 ) -> dict:
-    job_id = str(uuid.uuid4())
-    generate_jorc_report(job_id, payload)
-    return {"job_id": job_id}
+    return submit_job(
+        job_type="jorc_report",
+        payload=payload,
+        runner=generate_jorc_report,
+        celery_task=celery_generate_jorc_report,
+        async_default=True,
+    )

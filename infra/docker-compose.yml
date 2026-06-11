@@ -6,6 +6,15 @@ services:
     command: uvicorn backend.api.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      JOB_STORE_BACKEND: postgres
+      AUTH_STORE_BACKEND: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: terraforge
+      DB_USER: postgres
+      DB_PASSWORD: postgres
     depends_on: [db, redis]
 
   marketplace:
@@ -35,8 +44,19 @@ services:
   celery_worker:
     build:
       context: ..
-      dockerfile: infra/Dockerfile.api
-    command: python -c "print('celery worker placeholder')"
+      dockerfile: infra/Dockerfile.worker
+    command: >
+      celery -A backend.api.celery_app:celery_app worker
+      --loglevel=info -Q default,reports -c 2
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      JOB_STORE_BACKEND: postgres
+      AUTH_STORE_BACKEND: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: terraforge
+      DB_USER: postgres
+      DB_PASSWORD: postgres
     depends_on: [redis, db]
 
   gpu_worker:
@@ -44,8 +64,17 @@ services:
     build:
       context: ..
       dockerfile: infra/Dockerfile.gpu-worker
+    command: >
+      celery -A backend.api.celery_app:celery_app worker
+      --loglevel=info -Q gpu -c 1
     environment:
       REDIS_URL: redis://redis:6379/0
+      JOB_STORE_BACKEND: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: terraforge
+      DB_USER: postgres
+      DB_PASSWORD: postgres
       NVIDIA_VISIBLE_DEVICES: all
     depends_on: [redis, api]
     deploy:
