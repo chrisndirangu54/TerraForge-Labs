@@ -43,6 +43,14 @@ class HomeScreen extends StatelessWidget {
             title: 'Generate JORC Report',
             route: '/jorc-report',
           ),
+          _NavCard(icon: '🛒', title: 'Marketplace', route: '/marketplace'),
+          _NavCard(icon: '📊', title: 'Seismic Section', route: '/seismic'),
+          _NavCard(icon: '🌈', title: 'Spectral Map', route: '/spectral'),
+          _NavCard(
+            icon: '🔎',
+            title: 'Thin Section',
+            route: '/thin-section',
+          ),
         ],
       ),
     );

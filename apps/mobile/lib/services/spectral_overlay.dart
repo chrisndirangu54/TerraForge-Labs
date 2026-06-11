@@ -1,5 +1,17 @@
+import 'api_client.dart';
+
 class SpectralOverlayService {
-  Future<Map<String, dynamic>> fetchOverlay() async {
-    return {'status': 'cached', 'url': 'minio://spectral/fused_anomaly.tif'};
+  SpectralOverlayService({ApiClient? client}) : _client = client ?? ApiClient();
+
+  final ApiClient _client;
+
+  Future<Map<String, dynamic>> fuseSpectral({
+    String dataType = 'hyperspectral',
+    String filepath = 'kwale_hsi.hdr',
+  }) async {
+    return _client.post('/fuse-spectral', {
+      'data_type': dataType,
+      'filepath': filepath,
+    });
   }
 }

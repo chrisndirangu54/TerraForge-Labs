@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 
+import '../services/terraforge_api.dart';
+import '../widgets/backend_action_screen.dart';
+
 class ThinSectionViewerScreen extends StatelessWidget {
   const ThinSectionViewerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text('Thin section viewer (Phase 2 scaffold)')),
+    final api = TerraforgeApi();
+    return BackendActionScreen(
+      title: 'Thin Section Viewer',
+      description:
+          'Classify a thin section through POST /classify-thin-section.',
+      actionLabel: 'Classify Thin Section',
+      onAction: api.classifyThinSection,
     );
   }
 }

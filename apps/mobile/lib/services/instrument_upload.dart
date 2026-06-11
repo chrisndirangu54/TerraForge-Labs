@@ -1,12 +1,20 @@
+import 'api_client.dart';
+
 class InstrumentUploadService {
+  InstrumentUploadService({ApiClient? client})
+      : _client = client ?? ApiClient();
+
+  final ApiClient _client;
+
   Future<Map<String, dynamic>> upload({
     required String instrumentType,
-    required String filePath,
+    required List<int> fileBytes,
+    required String filename,
   }) async {
-    return {
-      'status': 'queued_offline',
-      'instrumentType': instrumentType,
-      'filePath': filePath,
-    };
+    return _client.uploadInstrument(
+      instrumentType: instrumentType,
+      fileBytes: fileBytes,
+      filename: filename,
+    );
   }
 }

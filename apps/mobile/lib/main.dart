@@ -13,7 +13,11 @@ import 'screens/urban.dart';
 import 'screens/infrastructure.dart';
 import 'screens/satellite_browser.dart';
 import 'screens/digital_twin.dart';
+import 'screens/marketplace.dart';
 import 'screens/offline_manager.dart';
+import 'screens/seismic_section.dart';
+import 'screens/spectral_map.dart';
+import 'screens/thin_section_viewer.dart';
 
 void main() {
   runApp(const TerraforgeApp());
@@ -42,6 +46,10 @@ class TerraforgeApp extends StatelessWidget {
         '/satellite': (context) => const SatelliteBrowserScreen(),
         '/twin': (context) => const DigitalTwinScreen(),
         '/offline': (context) => const OfflineManagerScreen(),
+        '/marketplace': (context) => const MarketplaceScreen(),
+        '/seismic': (context) => const SeismicSectionScreen(),
+        '/spectral': (context) => const SpectralMapScreen(),
+        '/thin-section': (context) => const ThinSectionViewerScreen(),
       },
     );
   }

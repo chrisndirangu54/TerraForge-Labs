@@ -1,3 +1,5 @@
+import 'api_client.dart';
+
 class GeobotanyClassification {
   final String species;
   final double confidence;
@@ -10,6 +12,21 @@ class GeobotanyClassification {
     required this.mineralAffinity,
     required this.recommendedAction,
   });
+
+  factory GeobotanyClassification.fromJson(Map<String, dynamic> json) {
+    final affinity = json['mineral_affinity'] ?? json['mineralAffinity'] ?? {};
+    return GeobotanyClassification(
+      species: json['species']?.toString() ?? 'unknown',
+      confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
+      mineralAffinity: affinity is Map
+          ? affinity
+              .map((key, value) => MapEntry(key.toString(), value.toString()))
+          : {},
+      recommendedAction: json['recommended_action']?.toString() ??
+          json['recommendedAction']?.toString() ??
+          'Review observation',
+    );
+  }
 }
 
 class GeobotanyObservationDraft {
@@ -32,21 +49,51 @@ class GeobotanyObservationDraft {
     this.localName,
     this.localSignificance,
   });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'species': species,
+      'lon': lon,
+      'lat': lat,
+      'vigour': vigour,
+      'leaf_colour': leafColour,
+      'density': density,
+      if (localName != null) 'local_name': localName,
+      if (localSignificance != null) 'local_significance': localSignificance,
+    };
+  }
 }
 
 class GeobotanyClassifierService {
+  GeobotanyClassifierService({ApiClient? client})
+      : _client = client ?? ApiClient();
+
+  final ApiClient _client;
+
   static const double confidenceThreshold = 0.65;
   static const String modelAsset =
       'assets/models/geobotany_classifier_int8.tflite';
 
   Future<void> loadModel() async {}
 
-  Future<GeobotanyClassification> classify(String imagePath) async {
-    return GeobotanyClassification(
-      species: 'ocimum_centraliafricanum',
-      confidence: 0.82,
-      mineralAffinity: const {'Cu': 'VERY_HIGH', 'Ni': 'HIGH'},
-      recommendedAction: 'Collect leaf tissue sample and run XRF transect',
-    );
+  Future<GeobotanyClassification> classify({
+    String imageBase64 = '',
+    double lon = 37.5,
+    double lat = -1.15,
+    String projectId = 'field-demo',
+  }) async {
+    final response = await _client.post('/geobotany/classify-plant', {
+      'image_base64': imageBase64,
+      'lon': lon,
+      'lat': lat,
+      'project_id': projectId,
+    });
+    return GeobotanyClassification.fromJson(response);
+  }
+
+  Future<Map<String, dynamic>> logObservation(
+    GeobotanyObservationDraft draft,
+  ) async {
+    return _client.post('/geobotany/log-observation', draft.toJson());
   }
 }

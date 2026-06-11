@@ -1,15 +1,29 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AppLayout } from './layout/AppLayout';
+import { DashboardPage } from './pages/DashboardPage';
+import { DomainPage } from './pages/DomainPage';
+import { UploadPage } from './pages/UploadPage';
 import { phase4Routes } from './routes';
 
 export function App() {
   return (
-    <main>
-      <h1>TerraForge Phase 4 Platform</h1>
-      <p>React + MapLibre + Cesium scaffold for geological, hydro, urban, infrastructure, and satellite workflows.</p>
-      <ul>
-        {phase4Routes.map((route) => (
-          <li key={route.path}>{route.path} — {route.page}</li>
-        ))}
-      </ul>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="upload" element={<UploadPage />} />
+          {phase4Routes
+            .filter((route) => route.path !== '/' && route.path !== '/upload')
+            .map((route) => (
+              <Route
+                key={route.path}
+                path={route.path.replace(/^\//, '')}
+                element={<DomainPage title={route.page} />}
+              />
+            ))}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }

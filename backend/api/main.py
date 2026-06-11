@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from backend.api.routers.compliance import router as compliance_router
 from backend.api.routers.ethnolinguistics import router as ethnolinguistics_router
@@ -28,6 +29,21 @@ from backend.api.routers.tectonics import router as tectonics_router
 from backend.api.routers.urban import router as urban_router
 
 app = FastAPI(title="Terraforge Labs API", version="0.2.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+        "http://10.0.2.2:8000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.include_router(geodata_router)
 app.include_router(instruments_router)
 app.include_router(modeling_router)
