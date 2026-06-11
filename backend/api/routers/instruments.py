@@ -59,11 +59,21 @@ async def upload_instrument_file(
         preview = parser.to_geojson(rows)
     else:
         rows = parser.parse(raw_path)
-        validation = {"warnings": [], "flagged_count": sum(int(r.get("flagged", False)) for r in rows)}
+        validation = {
+            "warnings": [],
+            "flagged_count": sum(int(r.get("flagged", False)) for r in rows),
+        }
         preview = {
             "type": "FeatureCollection",
             "features": [
-                {"type": "Feature", "geometry": {"type": "Point", "coordinates": [r.get("lon", 0), r.get("lat", 0)]}, "properties": r}
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [r.get("lon", 0), r.get("lat", 0)],
+                    },
+                    "properties": r,
+                }
                 for r in rows[:10]
             ],
         }

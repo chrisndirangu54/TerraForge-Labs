@@ -31,7 +31,9 @@ def _percentile(values: list[float], p: float) -> float:
 def run_kriging_pipeline(payload: dict) -> dict:
     obs = payload.get("observations", [])
     if not obs:
-        obs = [{"ta_ppm": 100 + i * 2, "assay_error_pct": 10 + (i % 5)} for i in range(25)]
+        obs = [
+            {"ta_ppm": 100 + i * 2, "assay_error_pct": 10 + (i % 5)} for i in range(25)
+        ]
 
     key = payload.get("element", "ta_ppm")
     vals = [float(o.get(key, 0)) for o in obs]
@@ -42,7 +44,9 @@ def run_kriging_pipeline(payload: dict) -> dict:
 
     grid_size = 10
     grid = [[mean for _ in range(grid_size)] for _ in range(grid_size)]
-    variance = [[max(1e-6, std**2 * 0.1) for _ in range(grid_size)] for _ in range(grid_size)]
+    variance = [
+        [max(1e-6, std**2 * 0.1) for _ in range(grid_size)] for _ in range(grid_size)
+    ]
 
     samples = []
     for _ in range(min(MONTE_CARLO_ITERATIONS, 200)):
@@ -92,5 +96,7 @@ def run_kriging_pipeline(payload: dict) -> dict:
             "n_points_used": len(vals),
             "n_points_flagged": flagged,
         },
-        "warnings": ["High flagged ratio" if (flagged / max(1, len(vals))) > 0.3 else ""],
+        "warnings": [
+            "High flagged ratio" if (flagged / max(1, len(vals))) > 0.3 else ""
+        ],
     }

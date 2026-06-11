@@ -6,7 +6,9 @@ from shared.instruments._stub_impl import StubParser
 
 
 class SEMParser(Protocol):
-    def load_images(self, se_path: str, bse_path: str | None) -> Tuple[np.ndarray, np.ndarray | None]: ...
+    def load_images(
+        self, se_path: str, bse_path: str | None
+    ) -> Tuple[np.ndarray, np.ndarray | None]: ...
 
     def load_eds(self, eds_file: str) -> dict: ...
 
@@ -18,7 +20,9 @@ class SEMParser(Protocol):
 
 
 class ZeissJeolSEMParser(StubParser):
-    def load_images(self, se_path: str, bse_path: str | None) -> Tuple[np.ndarray, np.ndarray | None]:
+    def load_images(
+        self, se_path: str, bse_path: str | None
+    ) -> Tuple[np.ndarray, np.ndarray | None]:
         se = np.zeros((64, 64), dtype=np.uint8)
         bse = np.zeros((64, 64), dtype=np.uint8) if bse_path else None
         return se, bse

@@ -23,7 +23,9 @@ class GnssTrimbleParser:
                     "fix_quality": fix_q,
                     "hdop": hdop,
                     "timestamp": parts[1],
-                    "accuracy_m_estimated": 0.02 if fix_q == 5 else (0.5 if fix_q == 4 else 5.0),
+                    "accuracy_m_estimated": (
+                        0.02 if fix_q == 5 else (0.5 if fix_q == 4 else 5.0)
+                    ),
                     "flagged": fix_q < 4 or hdop > 2.0,
                 }
             )
@@ -40,8 +42,3 @@ def _nmea_to_decimal(raw: str, hemi: str) -> float:
     if hemi in {"S", "W"}:
         dec *= -1
     return dec
-from shared.instruments._stub_impl import StubParser
-
-
-class GnssTrimbleParser(StubParser):
-    """gnss_trimble parser stub."""

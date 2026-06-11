@@ -7,7 +7,21 @@ from pathlib import Path
 
 from shared.instruments.base import ValidationResult
 
-BRUKER_RELEVANT_ELEMENTS = ["Ta", "Nb", "Sn", "W", "Zr", "Hf", "Fe", "Mn", "Ti", "Ce", "La", "Th", "U"]
+BRUKER_RELEVANT_ELEMENTS = [
+    "Ta",
+    "Nb",
+    "Sn",
+    "W",
+    "Zr",
+    "Hf",
+    "Fe",
+    "Mn",
+    "Ti",
+    "Ce",
+    "La",
+    "Th",
+    "U",
+]
 BRUKER_HIGH_ERROR_THRESHOLD = 0.20
 BRUKER_MIN_ACQUISITION_S = 30
 
@@ -38,7 +52,8 @@ class XrfBrukerParser:
                         "acquisition_time_s": acq,
                         "method": r.get("Method", "unknown"),
                         "rel_error_pct": rel_error,
-                        "flagged": rel_error > BRUKER_HIGH_ERROR_THRESHOLD or acq < BRUKER_MIN_ACQUISITION_S,
+                        "flagged": rel_error > BRUKER_HIGH_ERROR_THRESHOLD
+                        or acq < BRUKER_MIN_ACQUISITION_S,
                     }
                 )
         return rows
@@ -56,7 +71,13 @@ class XrfBrukerParser:
                     msg = f"Nb/Ta ratio warning for {r['sample_id']}: {ratio:.2f}"
                     warnings.warn(msg)
                     warnings_list.append(msg)
-        return ValidationResult({"valid": True, "warnings": warnings_list, "flagged_count": sum(int(r["flagged"]) for r in df)})
+        return ValidationResult(
+            {
+                "valid": True,
+                "warnings": warnings_list,
+                "flagged_count": sum(int(r["flagged"]) for r in df),
+            }
+        )
 
     def calibrate(self, df: list[dict], calibration_file: str | None) -> list[dict]:
         if not calibration_file:
@@ -67,7 +88,9 @@ class XrfBrukerParser:
             rr = dict(r)
             for key in ("ta_ppm", "nb_ppm", "sn_ppm"):
                 cfg = cal.get(key, {"slope": 1.0, "intercept": 0.0})
-                rr[key] = rr[key] * float(cfg.get("slope", 1.0)) + float(cfg.get("intercept", 0.0))
+                rr[key] = rr[key] * float(cfg.get("slope", 1.0)) + float(
+                    cfg.get("intercept", 0.0)
+                )
             out.append(rr)
         return out
 
@@ -79,13 +102,10 @@ class XrfBrukerParser:
                 {
                     "type": "Feature",
                     "geometry": {"type": "Point", "coordinates": [r["lon"], r["lat"]]},
-                    "properties": {k: v for k, v in r.items() if k not in {"lon", "lat"}},
+                    "properties": {
+                        k: v for k, v in r.items() if k not in {"lon", "lat"}
+                    },
                 }
                 for r in df
             ],
         }
-from shared.instruments._stub_impl import StubParser
-
-
-class XrfBrukerParser(StubParser):
-    """xrf_bruker parser stub."""
