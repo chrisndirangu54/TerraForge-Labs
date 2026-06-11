@@ -156,6 +156,44 @@ def optimise_drill_plan(
     }
 
 
+def drill_plan_optimise(
+    targets: list[dict], budget_usd: float, max_depth_m: float = 250.0
+) -> dict:
+    """Rank all candidate holes and return the budget-feasible drill plan."""
+
+    ranked_holes = sorted(
+        targets,
+        key=lambda item: _safe_ratio(
+            float(item.get("uncertainty_reduction", 0.0))
+            * float(item.get("target_probability", 0.0)),
+            float(item.get("depth_m", max_depth_m)),
+        ),
+        reverse=True,
+    )
+    ranked_holes = [
+        {
+            **hole,
+            "rank": index + 1,
+            "priority_score": round(
+                _safe_ratio(
+                    float(hole.get("uncertainty_reduction", 0.0))
+                    * float(hole.get("target_probability", 0.0)),
+                    float(hole.get("depth_m", max_depth_m)),
+                ),
+                4,
+            ),
+        }
+        for index, hole in enumerate(ranked_holes)
+    ]
+    plan = optimise_drill_plan(targets, budget_usd, max_depth_m=max_depth_m)
+    return {
+        **plan,
+        "ranked_holes": ranked_holes,
+        "budget_usd": budget_usd,
+        "max_depth_m": max_depth_m,
+    }
+
+
 def geochemistry_qaqc(samples: list[dict]) -> dict:
     failures = []
     for sample in samples:

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
 
 from backend.api.auth.router import mutating_router
 
+from backend.processing.fusion_engine import compute_fusion_score
 from backend.processing.gap_closure import (
     dispersion_model,
+    drill_plan_optimise,
     earth_observation_correction,
     ert_3d_inversion,
     flood_inundation_model,
@@ -15,7 +16,6 @@ from backend.processing.gap_closure import (
     investor_data_room,
     lims_sample_event,
     modpath_capture_zone,
-    optimise_drill_plan,
     pathfinder_analysis,
     sequential_gaussian_simulation,
     soil_gas_interpretation,
@@ -36,11 +36,16 @@ async def targeting_pathfinder(payload: dict) -> dict:
 
 @router.post("/targeting/drill-plan-optimise")
 async def targeting_drill_plan(payload: dict) -> dict:
-    return optimise_drill_plan(
+    return drill_plan_optimise(
         payload.get("targets", []),
         float(payload.get("budget_usd", 50_000)),
         float(payload.get("max_depth_m", 250)),
     )
+
+
+@router.post("/targeting/fusion-score")
+async def targeting_fusion_score(payload: dict) -> dict:
+    return compute_fusion_score(payload)
 
 
 @router.post("/targeting/geostat-simulate")

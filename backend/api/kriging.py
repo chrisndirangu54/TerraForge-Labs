@@ -1,12 +1,9 @@
 from __future__ import annotations
 
 import random
-from pathlib import Path
 
+from backend.api.services.storage import get_storage_service
 from shared.constants import MONTE_CARLO_ITERATIONS, NUGGET_RANGE, VARIOGRAM_MODEL
-
-ARTIFACT_DIR = Path("artifacts")
-ARTIFACT_DIR.mkdir(exist_ok=True)
 
 
 def _mean(values: list[float]) -> float:
@@ -26,6 +23,14 @@ def _percentile(values: list[float], p: float) -> float:
     arr = sorted(values)
     idx = int((len(arr) - 1) * p)
     return arr[idx]
+
+
+def _dump_grid(name: str, base: str, arr: list[list[float]]) -> str:
+    storage = get_storage_service()
+    key = f"kriging/{base}_{name}.tif"
+    content = "\n".join(",".join(f"{v:.3f}" for v in row) for row in arr)
+    storage.put(key, content, content_type="image/tiff")
+    return storage.get_public_url(key)
 
 
 def run_kriging_pipeline(payload: dict) -> dict:
@@ -70,18 +75,12 @@ def run_kriging_pipeline(payload: dict) -> dict:
         ci_upper.append(up_row)
 
     base = f"kriging_{random.randint(10000, 99999)}"
-
-    def dump(name: str, arr: list[list[float]]) -> str:
-        p = ARTIFACT_DIR / f"{base}_{name}.tif"
-        p.write_text("\n".join(",".join(f"{v:.3f}" for v in row) for row in arr))
-        return f"minio://kriging/{p.name}"
-
     flagged = sum(1 for e in errs if e > 0.2)
     return {
-        "grid_geotiff_url": dump("mean", grid),
-        "variance_geotiff_url": dump("variance", variance),
-        "ci_lower_geotiff_url": dump("ci_lower", ci_lower),
-        "ci_upper_geotiff_url": dump("ci_upper", ci_upper),
+        "grid_geotiff_url": _dump_grid("mean", base, grid),
+        "variance_geotiff_url": _dump_grid("variance", base, variance),
+        "ci_lower_geotiff_url": _dump_grid("ci_lower", base, ci_lower),
+        "ci_upper_geotiff_url": _dump_grid("ci_upper", base, ci_upper),
         "variogram_params": {
             "model": payload.get("variogram_model", VARIOGRAM_MODEL),
             "nugget": min(max(std * 0.05, NUGGET_RANGE[0]), NUGGET_RANGE[1]),
@@ -99,4 +98,5 @@ def run_kriging_pipeline(payload: dict) -> dict:
         "warnings": [
             "High flagged ratio" if (flagged / max(1, len(vals))) > 0.3 else ""
         ],
+        "storage_backend": get_storage_service().backend,
     }

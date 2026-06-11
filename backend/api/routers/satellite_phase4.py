@@ -32,7 +32,9 @@ async def satellite_latest(bbox: str = "", index: str = "ndvi") -> dict:
     return latest_index(_parse_bbox(bbox), index)
 
 
-@router.post("/satellite/change-detect", dependencies=[Depends(require_mutating_access)])
+@router.post(
+    "/satellite/change-detect", dependencies=[Depends(require_mutating_access)]
+)
 async def satellite_change_detect(payload: dict) -> dict:
     return change_detect(
         payload.get("before_url", "minio://satellite/before.tif"),

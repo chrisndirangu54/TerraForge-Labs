@@ -21,21 +21,42 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
   Map<String, dynamic>? _localResult;
   Map<String, dynamic>? _cloudResult;
 
+  @override
+  void initState() {
+    super.initState();
+    _classifier.loadModel();
+  }
+
+  @override
+  void dispose() {
+    _classifier.dispose();
+    super.dispose();
+  }
+
   Future<void> _classifyLocal() async {
     setState(() {
       _loading = true;
       _error = null;
     });
-    final result = await _classifier.classify(File('demo_mineral.jpg'));
-    setState(() {
-      _localResult = {
-        'label': result.label,
-        'confidence': result.confidence,
-        'top3': result.top3,
-        'accelerator': 'on-device-tflite',
-      };
-      _loading = false;
-    });
+    try {
+      final result = await _classifier.classify(File('demo_mineral.jpg'));
+      setState(() {
+        _localResult = {
+          'label': result.label,
+          'confidence': result.confidence,
+          'top3': result.top3,
+          'accelerator': result.accelerator,
+          'inference_ms': result.inferenceMs,
+          'target_met': result.inferenceMs < MineralClassifierService.targetInferenceMs,
+        };
+        _loading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _classifyCloud() async {
@@ -65,7 +86,8 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Use on-device TFLite for offline field work, or cloud GPU for higher accuracy.',
+            'Use on-device TFLite with rule-based fallback from mineral_labels.txt, '
+            'or cloud GPU for higher accuracy. Local target: <500ms.',
           ),
           const SizedBox(height: 16),
           ElevatedButton(

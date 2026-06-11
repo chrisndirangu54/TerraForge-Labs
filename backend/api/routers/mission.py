@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
 
 from backend.api.auth.router import mutating_router
 

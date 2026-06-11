@@ -75,3 +75,34 @@ CREATE TABLE IF NOT EXISTS project_memberships (
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 CREATE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
+
+CREATE TABLE IF NOT EXISTS artifacts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+    artifact_type VARCHAR(100) NOT NULL,
+    storage_key TEXT NOT NULL,
+    content_type VARCHAR(100) NOT NULL DEFAULT 'application/octet-stream',
+    size_bytes BIGINT NOT NULL DEFAULT 0,
+    checksum VARCHAR(64),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_artifacts_project ON artifacts(project_id);
+CREATE INDEX IF NOT EXISTS idx_artifacts_type ON artifacts(artifact_type);
+CREATE INDEX IF NOT EXISTS idx_artifacts_storage_key ON artifacts(storage_key);
+
+CREATE TABLE IF NOT EXISTS stac_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    collection VARCHAR(100) NOT NULL DEFAULT 'terraforge-rasters',
+    item_id VARCHAR(100) NOT NULL UNIQUE,
+    bbox DOUBLE PRECISION[4],
+    geometry JSONB,
+    properties JSONB NOT NULL DEFAULT '{}'::jsonb,
+    assets JSONB NOT NULL DEFAULT '{}'::jsonb,
+    artifact_id UUID REFERENCES artifacts(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_stac_items_collection ON stac_items(collection);
+CREATE INDEX IF NOT EXISTS idx_stac_items_item_id ON stac_items(item_id);

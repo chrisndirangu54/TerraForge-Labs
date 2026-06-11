@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from backend.api.services.labeling_store import get_labeling_store
+
 MIN_NEW_LABELS_FOR_RETRAIN = 10
 RESEARCH_GRADE_CONFIDENCE = "geologist_confirmed"
+LOW_CONFIDENCE_THRESHOLD = 0.65
 
 
 def normalise_observation(payload: dict) -> dict:
@@ -17,7 +20,32 @@ def normalise_observation(payload: dict) -> dict:
         "local_name": payload.get("local_name"),
         "local_significance": payload.get("local_significance"),
         "gbif_taxon_linked": bool(payload.get("gbif_taxon_key")),
+        "model_confidence": float(
+            payload.get("model_confidence", payload.get("confidence", 1.0))
+        ),
     }
+
+
+def queue_low_confidence_observation(observation: dict) -> dict | None:
+    confidence = float(
+        observation.get("model_confidence", observation.get("confidence", 1.0))
+    )
+    if confidence >= LOW_CONFIDENCE_THRESHOLD:
+        return None
+
+    store = get_labeling_store()
+    queued = store.enqueue(
+        {
+            "species": observation.get("species", "unknown_vegetation"),
+            "confidence": confidence,
+            "lon": observation.get("lon", 0.0),
+            "lat": observation.get("lat", 0.0),
+            "project_id": observation.get("project_id"),
+            "image_upload_id": observation.get("image_upload_id"),
+            "source": "geobotany_active_learning",
+        }
+    )
+    return queued
 
 
 def should_trigger_retrain(

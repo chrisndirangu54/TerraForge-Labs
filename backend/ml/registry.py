@@ -95,8 +95,7 @@ class MemoryModelRegistry(ModelRegistry):
             "stage": stage,
             "params": params or {},
             "metrics": metrics or {},
-            "artifact_path": artifact_path
-            or f"registry://{task}/{resolved_version}",
+            "artifact_path": artifact_path or f"registry://{task}/{resolved_version}",
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         self._versions.setdefault(task, {})[resolved_version] = record
@@ -170,7 +169,9 @@ class MlflowModelRegistry(ModelRegistry):
         )
         with self._mlflow.start_run(run_name=f"{task}-{record['version']}"):
             if params:
-                self._mlflow.log_params({f"param_{k}": str(v) for k, v in params.items()})
+                self._mlflow.log_params(
+                    {f"param_{k}": str(v) for k, v in params.items()}
+                )
             if metrics:
                 self._mlflow.log_metrics(
                     {k: float(v) for k, v in metrics.items() if _is_numeric(v)}

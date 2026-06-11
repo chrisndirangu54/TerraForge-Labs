@@ -6,6 +6,7 @@ from backend.api.auth.dependencies import require_mutating_access
 
 from backend.processing.geobotany_active_learning import (
     normalise_observation,
+    queue_low_confidence_observation,
     should_trigger_retrain,
 )
 from backend.processing.geobotany_anomaly import (
@@ -18,7 +19,7 @@ from backend.processing.vegetation_stress import (
     compute_sentinel_indices,
 )
 from models.geobotany_classifier.dataset import INDICATOR_MINERAL_AFFINITY
-from models.geobotany_classifier.infer import classify_plant_stub
+from models.geobotany_classifier.infer import classify_plant
 from shared.instruments.biogeochemical import parse_icp_ms_csv, summarise_biogeochem
 
 router = APIRouter()
@@ -30,23 +31,37 @@ INDICATOR_SPECIES = [
 ]
 
 
-@router.post("/geobotany/classify-plant", dependencies=[Depends(require_mutating_access)])
-async def classify_plant(payload: dict) -> dict:
-    result = classify_plant_stub(payload.get("image_base64", ""))
+@router.post(
+    "/geobotany/classify-plant", dependencies=[Depends(require_mutating_access)]
+)
+async def classify_plant_route(payload: dict) -> dict:
+    result = classify_plant(payload=payload)
+    observation = normalise_observation(
+        {
+            **payload,
+            "species": result["species"],
+            "model_confidence": result["confidence"],
+        }
+    )
+    queued = queue_low_confidence_observation(observation)
     return {
         **result,
         "lon": payload.get("lon"),
         "lat": payload.get("lat"),
         "project_id": payload.get("project_id"),
+        "active_learning_queue_id": queued["id"] if queued else None,
     }
 
 
-@router.post("/geobotany/log-observation", dependencies=[Depends(require_mutating_access)])
+@router.post(
+    "/geobotany/log-observation", dependencies=[Depends(require_mutating_access)]
+)
 async def log_observation(payload: dict) -> dict:
     observation = normalise_observation(payload)
+    queued = queue_low_confidence_observation(observation)
     return {
-        "status": "queued",
-        "observation_id": "geo-obs-001",
+        "status": "queued" if queued else "accepted",
+        "observation_id": queued["id"] if queued else "geo-obs-accepted",
         "observation": observation,
         "active_learning": should_trigger_retrain([observation]),
     }
@@ -75,7 +90,9 @@ async def stress_map(payload: dict) -> dict:
     return {"job_id": "geobotany-stress-job-1", "indices": indices, **stress}
 
 
-@router.post("/geobotany/biogeochem-upload", dependencies=[Depends(require_mutating_access)])
+@router.post(
+    "/geobotany/biogeochem-upload", dependencies=[Depends(require_mutating_access)]
+)
 async def biogeochem_upload(payload: dict) -> dict:
     filepath = payload.get("filepath")
     if filepath:

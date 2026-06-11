@@ -33,7 +33,9 @@ async def infra_pipeline_route(payload: dict) -> dict:
     )
 
 
-@router.post("/infra/mining-assessment", dependencies=[Depends(require_mutating_access)])
+@router.post(
+    "/infra/mining-assessment", dependencies=[Depends(require_mutating_access)]
+)
 async def infra_mining_assessment(payload: dict) -> dict:
     return mining_infrastructure_assessment(payload)
 

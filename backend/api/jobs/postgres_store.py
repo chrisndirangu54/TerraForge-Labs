@@ -170,10 +170,14 @@ class PostgresJobStore(JobStore):
                 "job_type": row["job_type"],
                 "status": row["status"],
                 "project_id": (
-                    str(row["project_id"]) if row.get("project_id") is not None else None
+                    str(row["project_id"])
+                    if row.get("project_id") is not None
+                    else None
                 ),
                 "created_by": (
-                    str(row["created_by"]) if row.get("created_by") is not None else None
+                    str(row["created_by"])
+                    if row.get("created_by") is not None
+                    else None
                 ),
                 "created_at": (
                     row["created_at"].isoformat() if row["created_at"] else None

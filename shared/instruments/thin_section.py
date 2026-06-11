@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from models.grain_segmentation.infer import segment_from_paths
+
 THIN_SECTION_CLASSES = [
     "quartz",
     "k_feldspar",
@@ -21,8 +23,4 @@ THIN_SECTION_CLASSES = [
 def classify_thin_section(ppl_path: str, xpl_path: str) -> dict:
     if not Path(ppl_path).exists() or not Path(xpl_path).exists():
         raise FileNotFoundError("PPL/XPL file missing")
-    return {
-        "annotated_tiff_url": "minio://petro/annotated_thin_section.tif",
-        "modal_mineralogy": {"quartz": 0.35, "plagioclase": 0.25, "coltan": 0.06},
-        "status": "phase2_stub",
-    }
+    return segment_from_paths(ppl_path, xpl_path)

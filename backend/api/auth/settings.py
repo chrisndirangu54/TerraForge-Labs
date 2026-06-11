@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 
+
 def is_auth_required() -> bool:
     return os.getenv("AUTH_REQUIRED", "false").lower() == "true"
 

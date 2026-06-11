@@ -15,7 +15,9 @@ from backend.processing.urban_analysis import (
 router = APIRouter()
 
 
-@router.post("/urban/classify-settlement", dependencies=[Depends(require_mutating_access)])
+@router.post(
+    "/urban/classify-settlement", dependencies=[Depends(require_mutating_access)]
+)
 async def classify_settlement_endpoint(payload: dict) -> dict:
     return classify_settlement(payload)
 

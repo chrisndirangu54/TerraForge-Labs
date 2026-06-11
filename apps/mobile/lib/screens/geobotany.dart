@@ -15,9 +15,23 @@ class GeobotanyScreen extends StatefulWidget {
 class _GeobotanyScreenState extends State<GeobotanyScreen> {
   final GeobotanyClassifierService _service = GeobotanyClassifierService();
   final CloudClassificationService _cloud = CloudClassificationService();
+  GeobotanyClassificationPolicy _policy =
+      GeobotanyClassificationPolicy.localFirst;
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _result;
+
+  @override
+  void initState() {
+    super.initState();
+    _service.loadModel();
+  }
+
+  @override
+  void dispose() {
+    _service.dispose();
+    super.dispose();
+  }
 
   Future<void> _classify() async {
     setState(() {
@@ -25,14 +39,12 @@ class _GeobotanyScreenState extends State<GeobotanyScreen> {
       _error = null;
     });
     try {
-      final classification = await _service.classify();
+      final classification = await _service.classify(policy: _policy);
       setState(() {
-        _result = {
-          'species': classification.species,
-          'confidence': classification.confidence,
-          'mineral_affinity': classification.mineralAffinity,
-          'recommended_action': classification.recommendedAction,
-        };
+        _result = classification.toJson()
+          ..['policy'] = _policy.name
+          ..['cloud_fallback_threshold'] =
+              GeobotanyClassifierService.confidenceThreshold;
         _loading = false;
       });
     } catch (error) {
@@ -99,12 +111,41 @@ class _GeobotanyScreenState extends State<GeobotanyScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Classify indicator plants and log field observations through the backend API.',
+            'Classify indicator plants locally with TFLite, falling back to cloud '
+            'when confidence is below 0.65.',
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<GeobotanyClassificationPolicy>(
+            initialValue: _policy,
+            decoration: const InputDecoration(
+              labelText: 'Classification policy',
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: GeobotanyClassificationPolicy.localOnly,
+                child: Text('Local only'),
+              ),
+              DropdownMenuItem(
+                value: GeobotanyClassificationPolicy.localFirst,
+                child: Text('Local first (cloud fallback <0.65)'),
+              ),
+              DropdownMenuItem(
+                value: GeobotanyClassificationPolicy.cloudOnly,
+                child: Text('Cloud only'),
+              ),
+            ],
+            onChanged: _loading
+                ? null
+                : (value) {
+                    if (value != null) {
+                      setState(() => _policy = value);
+                    }
+                  },
           ),
           const SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loading ? null : _classify,
-            child: const Text('Classify Plant (API)'),
+            child: Text(_loading ? 'Classifying...' : 'Classify Plant'),
           ),
           const SizedBox(height: 8),
           ElevatedButton(
@@ -123,7 +164,7 @@ class _GeobotanyScreenState extends State<GeobotanyScreen> {
           if (_result != null) ...[
             const SizedBox(height: 16),
             SelectableText(
-              const JsonEncoder.withIndent('  ').convert(_result),
+              JsonEncoder.withIndent('  ').convert(_result),
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
             ),
           ],

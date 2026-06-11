@@ -1,9 +1,14 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from datetime import datetime, timezone
+from typing import Any
+from uuid import uuid4
 
+from backend.api.services.audit_v2 import get_audit_store
 from backend.api.services.llm import generate_section
+from backend.api.services.storage import get_storage_service
+from backend.ml.registry import get_model_registry
 
 DISCLAIMER = "⚠ This report was generated with AI assistance and has NOT been reviewed by a Competent Person as defined under JORC 2012. It must not be used for investment decisions, regulatory filings, or public disclosure without independent review and sign-off by a suitably qualified and experienced Competent Person."
 GEOBOTANY_DISCLAIMER = "Geobotanical results are supplementary to primary geochemical and geophysical data. Indicator species responses can be confounded by soil pH, moisture, competition, and disturbance. All anomalies require confirmation by conventional geochemical sampling."
@@ -39,8 +44,63 @@ JORC_SECTIONS = {
     "4_estimation_and_reporting_reserves": "GEOLOGIST_REVIEW_REQUIRED",
 }
 
-ARTIFACT_DIR = Path("artifacts")
-ARTIFACT_DIR.mkdir(exist_ok=True)
+VALID_STATES = frozenset({"draft", "review", "approved"})
+VALID_TRANSITIONS = {
+    "draft": {"review"},
+    "review": {"approved", "draft"},
+    "approved": set(),
+}
+
+
+class MemoryReportStore:
+    def __init__(self) -> None:
+        self._reports: dict[str, dict[str, Any]] = {}
+
+    def save(self, report: dict[str, Any]) -> dict[str, Any]:
+        self._reports[report["report_id"]] = report
+        return report
+
+    def get(self, report_id: str) -> dict[str, Any] | None:
+        return self._reports.get(report_id)
+
+    def list_reports(self) -> list[dict[str, Any]]:
+        return sorted(
+            self._reports.values(),
+            key=lambda item: item.get("updated_at", ""),
+            reverse=True,
+        )
+
+    def reset(self) -> None:
+        self._reports.clear()
+
+
+_REPORT_STORE: MemoryReportStore | None = None
+
+
+def get_report_store() -> MemoryReportStore:
+    global _REPORT_STORE
+    if _REPORT_STORE is None:
+        _REPORT_STORE = MemoryReportStore()
+    return _REPORT_STORE
+
+
+def reset_report_store() -> None:
+    global _REPORT_STORE
+    _REPORT_STORE = None
+
+
+def _model_provenance() -> dict[str, Any]:
+    registry = get_model_registry()
+    provenance: dict[str, Any] = {}
+    for task in ("mineral", "geobotany", "grain_segmentation"):
+        production = registry.get_production(task)
+        if production:
+            provenance[task] = {
+                "version": production.get("version"),
+                "artifact_path": production.get("artifact_path"),
+                "metrics": production.get("metrics", {}),
+            }
+    return provenance
 
 
 def build_geobotany_jorc_sections(data: dict) -> dict:
@@ -72,11 +132,20 @@ def build_geobotany_jorc_sections(data: dict) -> dict:
 
 def build_jorc_report(payload: dict) -> dict:
     project = payload.get("project_name", "Matuu Pilot")
+    report_id = payload.get("report_id") or str(uuid4())
+    now = datetime.now(timezone.utc).isoformat()
     report = {
+        "report_id": report_id,
         "project": project,
+        "state": "draft",
         "disclaimer_acknowledged": False,
         "disclaimer": DISCLAIMER,
         "sections": {},
+        "provenance": _model_provenance(),
+        "created_at": now,
+        "updated_at": now,
+        "approved_by": None,
+        "approved_at": None,
     }
 
     for sec, criteria in JORC_SECTIONS.items():
@@ -107,22 +176,101 @@ def build_jorc_report(payload: dict) -> dict:
             "status": "required",
         }
 
+    storage = get_storage_service()
     base = project.lower().replace(" ", "_")
-    json_path = ARTIFACT_DIR / f"{base}_jorc.json"
-    html_path = ARTIFACT_DIR / f"{base}_jorc.html"
-    pdf_path = ARTIFACT_DIR / f"{base}_jorc.pdf"
+    json_key = f"reports/{base}_jorc.json"
+    html_key = f"reports/{base}_jorc.html"
+    pdf_key = f"reports/{base}_jorc.pdf"
 
-    json_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
-    html_path.write_text(
+    storage.put(json_key, json.dumps(report, indent=2), content_type="application/json")
+    storage.put(
+        html_key,
         f"<html><body><h1>{project}</h1><p>{DISCLAIMER}</p><pre>{json.dumps(report, indent=2)}</pre></body></html>",
-        encoding="utf-8",
+        content_type="text/html",
     )
-    pdf_path.write_bytes(
-        ("PDF-PLACEHOLDER\n" + DISCLAIMER + "\n" + json.dumps(report)).encode("utf-8")
+    storage.put(
+        pdf_key,
+        ("PDF-PLACEHOLDER\n" + DISCLAIMER + "\n" + json.dumps(report)).encode("utf-8"),
+        content_type="application/pdf",
+    )
+
+    get_report_store().save(report)
+    get_audit_store().record(
+        {
+            "action": "jorc_report_created",
+            "resource_type": "jorc_report",
+            "resource_id": report_id,
+            "actor": payload.get("actor", "system"),
+            "metadata": {"project": project, "state": "draft"},
+        }
     )
 
     return {
-        "json_url": f"minio://reports/{json_path.name}",
-        "html_url": f"minio://reports/{html_path.name}",
-        "pdf_url": f"minio://reports/{pdf_path.name}",
+        "report_id": report_id,
+        "state": report["state"],
+        "json_url": storage.get_public_url(json_key),
+        "html_url": storage.get_public_url(html_key),
+        "pdf_url": storage.get_public_url(pdf_key),
+        "provenance": report["provenance"],
     }
+
+
+def transition_report_state(
+    report_id: str,
+    *,
+    target_state: str,
+    actor: str = "system",
+) -> dict[str, Any]:
+    if target_state not in VALID_STATES:
+        raise ValueError(f"Invalid report state: {target_state}")
+
+    store = get_report_store()
+    report = store.get(report_id)
+    if report is None:
+        raise KeyError(f"Report not found: {report_id}")
+
+    current_state = report["state"]
+    if target_state not in VALID_TRANSITIONS.get(current_state, set()):
+        raise ValueError(f"Invalid transition from {current_state} to {target_state}")
+
+    if target_state == "approved" and not report.get("disclaimer_acknowledged"):
+        raise ValueError("Disclaimer must be acknowledged before approval")
+
+    now = datetime.now(timezone.utc).isoformat()
+    report = {
+        **report,
+        "state": target_state,
+        "updated_at": now,
+        "approved_by": (
+            actor if target_state == "approved" else report.get("approved_by")
+        ),
+        "approved_at": now if target_state == "approved" else report.get("approved_at"),
+    }
+    store.save(report)
+    get_audit_store().record(
+        {
+            "action": "jorc_report_transition",
+            "resource_type": "jorc_report",
+            "resource_id": report_id,
+            "actor": actor,
+            "metadata": {
+                "from_state": current_state,
+                "to_state": target_state,
+            },
+        }
+    )
+    return report
+
+
+def acknowledge_disclaimer(report_id: str) -> dict[str, Any]:
+    store = get_report_store()
+    report = store.get(report_id)
+    if report is None:
+        raise KeyError(f"Report not found: {report_id}")
+    report = {
+        **report,
+        "disclaimer_acknowledged": True,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    store.save(report)
+    return report

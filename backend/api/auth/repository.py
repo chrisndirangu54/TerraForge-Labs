@@ -249,13 +249,11 @@ class PostgresAuthRepository(AuthRepository):
                     (user_id,),
                 ).fetchall()
             else:
-                rows = conn.execute(
-                    """
+                rows = conn.execute("""
                     SELECT id, slug, name, created_by
                     FROM projects
                     ORDER BY name
-                    """
-                ).fetchall()
+                    """).fetchall()
         return [
             {
                 "id": str(row["id"]),

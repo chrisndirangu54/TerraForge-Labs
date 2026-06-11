@@ -63,6 +63,27 @@ def generate_jorc_report(job_id: str, payload: dict) -> dict:
     return result
 
 
+def retrain_geobotany_model(job_id: str, payload: dict) -> dict:
+    from models.geobotany_classifier.evaluate import evaluate_geobotany_classifier
+    from models.geobotany_classifier.train import train_geobotany_classifier
+
+    _set(job_id, "geobotany_retrain", status="running")
+    train_result = train_geobotany_classifier(
+        epochs=int(payload.get("epochs", 5)),
+        samples_per_class=int(payload.get("samples_per_class", 24)),
+    )
+    eval_result = evaluate_geobotany_classifier(
+        checkpoint_path=train_result["checkpoint_path"]
+    )
+    result = {
+        "train": train_result,
+        "evaluation": eval_result,
+        "promoted": bool(eval_result.get("meets_threshold")),
+    }
+    _set(job_id, "geobotany_retrain", status="complete", result=result)
+    return result
+
+
 def run_gpu_classification(job_id: str, payload: dict) -> dict:
     task = payload.get("task", "mineral")
     _set(job_id, "gpu_classification", status="running", task=task, accelerator="gpu")
@@ -122,4 +143,7 @@ celery_generate_jorc_report = _wrap_celery_task(
 )
 celery_gpu_classification = _wrap_celery_task(
     "terraforge.run_gpu_classification", "gpu_classification", run_gpu_classification
+)
+celery_retrain_geobotany_model = _wrap_celery_task(
+    "terraforge.retrain_geobotany_model", "geobotany_retrain", retrain_geobotany_model
 )

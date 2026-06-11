@@ -19,6 +19,8 @@ SUPPORTED_TASKS = (
     "grain_segmentation",
 )
 
+_MODEL_CACHE: dict[str, Any] = {}
+
 TASK_LABELS: dict[str, list[str]] = {
     "mineral": MINERAL_CLASSES,
     "geobotany": [
@@ -166,26 +168,37 @@ def _resolve_production_model(task: str) -> dict[str, Any]:
     }
 
 
-def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _cache_key(task: str, model_record: dict[str, Any]) -> str:
+    return (
+        f"{task}:{model_record.get('version', 'builtin')}:"
+        f"{model_record.get('artifact_path', 'none')}"
+    )
+
+
+def _get_cached_torch_models(
+    task: str,
+    payload: dict[str, Any],
+    model_record: dict[str, Any],
+    labels: list[str],
+    feature_dim: int,
+    backbone_name: str,
+) -> tuple[Any, Any, Any, bool]:
     import torch
     import torch.nn as nn
     from torchvision import models
 
-    labels = TASK_LABELS[task]
-    model_record = _resolve_production_model(task)
-    model_params = model_record.get("params") or {}
-    feature_dim = int(model_params.get("feature_dim", 512))
-    backbone_name = str(model_params.get("backbone", "torchvision-resnet18"))
-
+    cache_key = _cache_key(task, model_record)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_amp = device.type == "cuda"
+
+    cached = _MODEL_CACHE.get(cache_key)
+    if cached is not None:
+        return cached["backbone"], cached["head"], cached["device"], cached["use_amp"]
 
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
 
     payload = {**payload, "task": task}
-    input_tensor = _load_image_tensor(payload, device)
-
     weights = models.ResNet18_Weights.DEFAULT
     backbone = models.resnet18(weights=weights)
     backbone.fc = nn.Identity()
@@ -199,6 +212,40 @@ def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
     nn.init.xavier_uniform_(head.weight, generator=generator)
     head.eval()
     head.to(device)
+
+    _MODEL_CACHE[cache_key] = {
+        "backbone": backbone,
+        "head": head,
+        "device": device,
+        "use_amp": use_amp,
+        "model": backbone_name,
+    }
+    return backbone, head, device, use_amp
+
+
+def clear_model_cache() -> None:
+    _MODEL_CACHE.clear()
+
+
+def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
+    import torch
+
+    labels = TASK_LABELS[task]
+    model_record = _resolve_production_model(task)
+    model_params = model_record.get("params") or {}
+    feature_dim = int(model_params.get("feature_dim", 512))
+    backbone_name = str(model_params.get("backbone", "torchvision-resnet18"))
+
+    payload = {**payload, "task": task}
+    backbone, head, device, use_amp = _get_cached_torch_models(
+        task,
+        payload,
+        model_record,
+        labels,
+        feature_dim,
+        backbone_name,
+    )
+    input_tensor = _load_image_tensor(payload, device)
 
     started = time.perf_counter()
     with torch.inference_mode():

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import RedirectResponse
 
 from backend.api.auth.dependencies import require_mutating_access
+from backend.api.services.storage import get_storage_service
 
 from backend.processing.mapping_stack import (
     cesium_tileset_job,
@@ -15,14 +17,25 @@ router = APIRouter()
 
 
 @router.get("/tiles/{z}/{x}/{y}")
-async def vector_tile(z: int, x: int, y: int) -> dict:
-    return {
-        "z": z,
-        "x": x,
-        "y": y,
-        "tile_url": f"martin://geological/{z}/{x}/{y}.mvt",
-        "target_ms": 100,
-    }
+async def vector_tile(z: int, x: int, y: int) -> RedirectResponse:
+    storage = get_storage_service()
+    tile_key = f"tiles/{z}/{x}/{y}.mvt"
+    if not storage.exists(tile_key):
+        storage.put(
+            tile_key,
+            f"MVT placeholder {z}/{x}/{y}",
+            content_type="application/vnd.mapbox-vector-tile",
+        )
+    return RedirectResponse(url=storage.get_signed_url(tile_key), status_code=302)
+
+
+@router.get("/tiles/raster/{z}/{x}/{y}")
+async def raster_tile(z: int, x: int, y: int) -> RedirectResponse:
+    storage = get_storage_service()
+    tile_key = f"tiles/raster/{z}/{x}/{y}.png"
+    if not storage.exists(tile_key):
+        storage.put(tile_key, b"PNG-PLACEHOLDER", content_type="image/png")
+    return RedirectResponse(url=storage.get_signed_url(tile_key), status_code=302)
 
 
 @router.get("/tiles/offline/{region}")
@@ -32,10 +45,11 @@ async def offline_tiles(region: str, include_satellite: bool = True) -> dict:
 
 @router.get("/basemap/sentinel2")
 async def sentinel2_basemap(bbox: str = "", date: str = "latest") -> dict:
+    storage = get_storage_service()
     return {
         "bbox": bbox,
         "date": date,
-        "tile_url": "minio://basemaps/sentinel2/{z}/{x}/{y}.png",
+        "tile_url": storage.get_signed_url("basemaps/sentinel2/{z}/{x}/{y}.png"),
     }
 
 
