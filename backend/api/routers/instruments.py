@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
+from typing import Any
 
 from fastapi import APIRouter, File, Form, UploadFile
 
@@ -16,7 +17,7 @@ router = APIRouter()
 UPLOAD_ROOT = Path("tmp_uploads")
 UPLOAD_ROOT.mkdir(exist_ok=True)
 
-PARSER_REGISTRY = {
+PARSER_REGISTRY: dict[str, type[Any]] = {
     "xrf_bruker": XrfBrukerParser,
     "terrameter": TerrameterParser,
     "kappameter": KappameterParser,
@@ -38,17 +39,17 @@ async def upload_instrument_file(
     upload_dir = UPLOAD_ROOT / instrument_type / upload_id
     upload_dir.mkdir(parents=True, exist_ok=True)
 
-    raw_path = upload_dir / file.filename
+    raw_path = upload_dir / (file.filename or "upload.bin")
     raw_path.write_bytes(await file.read())
 
     gps_path = None
     if gps_file:
-        gps_path = upload_dir / gps_file.filename
+        gps_path = upload_dir / (gps_file.filename or "gps.csv")
         gps_path.write_bytes(await gps_file.read())
 
     cal_path = None
     if calibration_file:
-        cal_path = upload_dir / calibration_file.filename
+        cal_path = upload_dir / (calibration_file.filename or "calibration.json")
         cal_path.write_bytes(await calibration_file.read())
 
     parser = PARSER_REGISTRY[instrument_type]()

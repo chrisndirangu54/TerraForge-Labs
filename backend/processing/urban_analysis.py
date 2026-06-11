@@ -43,7 +43,7 @@ def service_access(distance_km: float, service_type: str = "water_point") -> dic
 
 
 def suitability_score(inputs: dict[str, float]) -> dict:
-    score = 100
+    score = 100.0
     score -= min(30, inputs.get("distance_to_road_km", 0) * 6)
     score -= min(25, inputs.get("flood_risk", 0) * 25)
     score -= min(20, inputs.get("slope_deg", 0))

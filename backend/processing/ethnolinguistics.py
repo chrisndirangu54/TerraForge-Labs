@@ -11,7 +11,7 @@ DEFAULT_LANGUAGE_HINTS = {
     "kik": "Gikuyu",
     "en": "English",
 }
-GEO_TERM_LEXICON = {
+GEO_TERM_LEXICON: dict[str, dict[str, str | float]] = {
     "shaba": {"concept": "copper", "domain": "mineral", "confidence": 0.86},
     "dhahabu": {"concept": "gold", "domain": "mineral", "confidence": 0.86},
     "maji": {"concept": "water", "domain": "hydrogeology", "confidence": 0.8},
@@ -79,15 +79,21 @@ def record_ethnolinguistic_term(payload: dict) -> dict:
 
 def interpret_local_term(term: str, language_code: str = "und") -> dict:
     normalised = normalise_term(term)
-    matches = []
+    matches: list[dict[str, str | float]] = []
     for token in normalised.split():
         if token in GEO_TERM_LEXICON:
             matches.append({"token": token, **GEO_TERM_LEXICON[token]})
     if not matches and normalised in GEO_TERM_LEXICON:
         matches.append({"token": normalised, **GEO_TERM_LEXICON[normalised]})
-    top_match = max(matches, key=lambda match: float(match["confidence"]), default=None)
-    top_domain = top_match["domain"] if top_match else "unknown"
-    confidence = float(top_match["confidence"]) if top_match else 0.0
+    top_match = max(
+        matches,
+        key=lambda match: float(match.get("confidence", 0.0)),
+        default=None,
+    )
+    top_domain = str(top_match.get("domain", "unknown")) if top_match else "unknown"
+    confidence = (
+        float(top_match.get("confidence", 0.0)) if top_match is not None else 0.0
+    )
     return {
         "input_term": normalised,
         "language_code": language_code,
