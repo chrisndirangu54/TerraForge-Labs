@@ -8,6 +8,7 @@ if str(ROOT) not in sys.path:
 
 os.environ.setdefault("JOB_STORE_BACKEND", "memory")
 os.environ.setdefault("AUTH_STORE_BACKEND", "memory")
+os.environ.setdefault("INGEST_STORE_BACKEND", "memory")
 os.environ.setdefault("AUTH_REQUIRED", "false")
 os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "true")
 os.environ.setdefault("CELERY_TASK_EAGER_PROPAGATES", "false")

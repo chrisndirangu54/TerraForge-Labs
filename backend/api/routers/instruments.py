@@ -7,6 +7,11 @@ from typing import Any
 
 from fastapi import APIRouter, File, Form, UploadFile
 
+from backend.api.services.ingest import (
+    ingest_observations,
+    parser_version_for,
+    rows_to_observations,
+)
 from shared.instruments.gnss_trimble import GnssTrimbleParser
 from shared.instruments.kappameter import KappameterParser
 from shared.instruments.terrameter import TerrameterParser
@@ -29,6 +34,7 @@ PARSER_REGISTRY: dict[str, type[Any]] = {
 async def upload_instrument_file(
     instrument_type: str = Form(...),
     file: UploadFile = File(...),
+    project_id: str | None = Form(default=None),
     gps_file: UploadFile | None = File(default=None),
     calibration_file: UploadFile | None = File(default=None),
 ) -> dict:
@@ -36,6 +42,7 @@ async def upload_instrument_file(
         return {"error": f"Unsupported instrument_type: {instrument_type}"}
 
     upload_id = str(uuid.uuid4())
+    resolved_project_id = project_id or str(uuid.uuid4())
     upload_dir = UPLOAD_ROOT / instrument_type / upload_id
     upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -82,11 +89,23 @@ async def upload_instrument_file(
     storage_path = upload_dir / "parsed_preview.json"
     storage_path.write_text(json.dumps(preview))
 
+    observations = rows_to_observations(
+        rows,
+        project_id=resolved_project_id,
+        source="instrument_upload",
+        parser_version=parser_version_for(instrument_type),
+        instrument_type=instrument_type,
+        upload_id=upload_id,
+    )
+    persisted = ingest_observations(observations)
+
     return {
         "upload_id": upload_id,
+        "project_id": resolved_project_id,
         "row_count": len(rows),
         "flagged_count": validation.get("flagged_count", 0),
         "warnings": validation.get("warnings", []),
         "geojson_preview": {**preview, "features": preview.get("features", [])[:10]},
+        "persisted": persisted,
         "minio_url": f"minio://uploads/{instrument_type}/{upload_id}/{file.filename}",
     }

@@ -4,6 +4,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS instrument_readings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     upload_id UUID NOT NULL,
+    project_id UUID,
+    source VARCHAR(100) NOT NULL DEFAULT 'unknown',
+    parser_version VARCHAR(100) NOT NULL DEFAULT 'unknown@0.0.0',
+    crs VARCHAR(32) NOT NULL DEFAULT 'EPSG:4326',
     instrument_type VARCHAR(50) NOT NULL,
     sample_id VARCHAR(100),
     geom GEOMETRY(Point, 4326),
@@ -16,6 +20,8 @@ CREATE TABLE IF NOT EXISTS instrument_readings (
 CREATE INDEX IF NOT EXISTS idx_instrument_readings_geom ON instrument_readings USING GIST(geom);
 CREATE INDEX IF NOT EXISTS idx_instrument_readings_type ON instrument_readings(instrument_type);
 CREATE INDEX IF NOT EXISTS idx_instrument_readings_upload ON instrument_readings(upload_id);
+CREATE INDEX IF NOT EXISTS idx_instrument_readings_project ON instrument_readings(project_id);
+CREATE INDEX IF NOT EXISTS idx_instrument_readings_source ON instrument_readings(source);
 
 CREATE TABLE IF NOT EXISTS jobs (
     id UUID PRIMARY KEY,

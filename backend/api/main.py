@@ -14,6 +14,7 @@ from backend.api.routers.geodata import router as geodata_router
 from backend.api.routers.historical import router as historical_router
 from backend.api.routers.hydrogeology import router as hydrogeology_router
 from backend.api.routers.infrastructure import router as infrastructure_router
+from backend.api.routers.ingest import router as ingest_router
 from backend.api.routers.instruments import router as instruments_router
 from backend.api.routers.jobs import router as jobs_router
 from backend.api.routers.mapping import router as mapping_router
@@ -53,6 +54,7 @@ app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(cloud_classification_router)
 app.include_router(geodata_router)
+app.include_router(ingest_router)
 app.include_router(instruments_router)
 app.include_router(modeling_router)
 app.include_router(reports_router)
