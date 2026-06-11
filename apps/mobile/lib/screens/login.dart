@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
+import '../services/auth_service.dart';
 import '../services/terraforge_api.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,6 +13,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TerraforgeApi _api = TerraforgeApi();
+  final _emailController = TextEditingController(text: 'geo@example.com');
+  final _passwordController = TextEditingController(text: 'securepass1');
   bool _checking = false;
   String? _status;
 
@@ -22,19 +25,36 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       final health = await _api.health();
+      final login = await _api.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+      AuthService.instance.setSession(
+        token: login['access_token'] as String,
+        user: Map<String, dynamic>.from(login['user'] as Map),
+      );
       if (!mounted) return;
       setState(() {
-        _status = 'Connected: ${health['status']} (v${health['version']})';
+        _status =
+            'Connected: ${health['status']} (v${health['version']}) as ${login['user']['email']}';
         _checking = false;
       });
       Navigator.pushNamed(context, '/home');
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _status = 'Backend unreachable at ${ApiConfig.baseUrl}\n$error';
+        _status =
+            'Login failed for ${ApiConfig.baseUrl}. Register a user via POST /auth/register first.\n$error';
         _checking = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -48,9 +68,21 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             Text('API: ${ApiConfig.baseUrl}'),
             const SizedBox(height: 16),
+            TextField(
+              controller: _emailController,
+              decoration: const InputDecoration(labelText: 'Email'),
+              keyboardType: TextInputType.emailAddress,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _passwordController,
+              decoration: const InputDecoration(labelText: 'Password'),
+              obscureText: true,
+            ),
+            const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _checking ? null : _connect,
-              child: Text(_checking ? 'Connecting...' : 'Connect to Backend'),
+              child: Text(_checking ? 'Signing in...' : 'Sign In'),
             ),
             if (_status != null) ...[
               const SizedBox(height: 16),

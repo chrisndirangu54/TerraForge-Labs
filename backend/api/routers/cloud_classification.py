@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from backend.api.auth.dependencies import require_mutating_access
 from backend.api.celery_app import celery_app
-from backend.api.tasks import JOB_STORE, run_gpu_classification
+from backend.api.jobs.store import get_job_store
+from backend.api.tasks import run_gpu_classification
 from backend.processing.gpu_classifier import (
     SUPPORTED_TASKS,
     classify_gpu_batch,
@@ -16,6 +18,7 @@ router = APIRouter()
 
 
 def _enqueue_or_run(payload: dict) -> dict:
+    store = get_job_store()
     task = payload.get("task", "mineral")
     if task not in SUPPORTED_TASKS:
         raise HTTPException(status_code=400, detail=f"Unsupported task: {task}")
@@ -26,11 +29,15 @@ def _enqueue_or_run(payload: dict) -> dict:
     if use_async and celery_app is not None:
         from backend.api.tasks import celery_gpu_classification
 
-        JOB_STORE[job_id] = {
-            "status": "queued",
-            "task": task,
-            "accelerator": "gpu-queue",
-        }
+        store.set(
+            job_id,
+            {
+                "job_type": "gpu_classification",
+                "status": "queued",
+                "task": task,
+                "accelerator": "gpu-queue",
+            },
+        )
         celery_gpu_classification.delay(job_id, payload)
         return {
             "job_id": job_id,
@@ -40,7 +47,7 @@ def _enqueue_or_run(payload: dict) -> dict:
         }
 
     run_gpu_classification(job_id, payload)
-    stored = JOB_STORE.get(job_id, {"status": "unknown"})
+    stored = store.get(job_id)
     return {"job_id": job_id, **stored}
 
 
@@ -56,18 +63,28 @@ async def gpu_capabilities() -> dict:
 
 
 @router.post("/classification/gpu")
-async def submit_gpu_classification(payload: dict) -> dict:
+async def submit_gpu_classification(
+    payload: dict,
+    _: dict = Depends(require_mutating_access),
+) -> dict:
     return _enqueue_or_run(payload)
 
 
 @router.post("/classification/gpu/sync")
-async def submit_gpu_classification_sync(payload: dict) -> dict:
+async def submit_gpu_classification_sync(
+    payload: dict,
+    _: dict = Depends(require_mutating_access),
+) -> dict:
     payload = {**payload, "async": False}
     return _enqueue_or_run(payload)
 
 
 @router.post("/classification/gpu/batch")
-async def submit_gpu_classification_batch(payload: dict) -> dict:
+async def submit_gpu_classification_batch(
+    payload: dict,
+    _: dict = Depends(require_mutating_access),
+) -> dict:
+    store = get_job_store()
     task = payload.get("task", "mineral")
     if task not in SUPPORTED_TASKS:
         raise HTTPException(status_code=400, detail=f"Unsupported task: {task}")
@@ -87,12 +104,16 @@ async def submit_gpu_classification_batch(payload: dict) -> dict:
         batch_payload = {"task": task, "items": items, "batch": True}
         from backend.api.tasks import celery_gpu_classification
 
-        JOB_STORE[job_id] = {
-            "status": "queued",
-            "task": task,
-            "batch": True,
-            "count": len(items),
-        }
+        store.set(
+            job_id,
+            {
+                "job_type": "gpu_classification",
+                "status": "queued",
+                "task": task,
+                "batch": True,
+                "count": len(items),
+            },
+        )
         celery_gpu_classification.delay(job_id, batch_payload)
         return {
             "job_id": job_id,

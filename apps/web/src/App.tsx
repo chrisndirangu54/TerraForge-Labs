@@ -3,6 +3,7 @@ import { AppLayout } from './layout/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
 import { DomainPage } from './pages/DomainPage';
 import { CloudGpuPage } from './pages/CloudGpuPage';
+import { LoginPage } from './pages/LoginPage';
 import { UploadPage } from './pages/UploadPage';
 import { phase4Routes } from './routes';
 
@@ -10,6 +11,7 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="login" element={<LoginPage />} />
         <Route element={<AppLayout />}>
           <Route index element={<DashboardPage />} />
           <Route path="upload" element={<UploadPage />} />

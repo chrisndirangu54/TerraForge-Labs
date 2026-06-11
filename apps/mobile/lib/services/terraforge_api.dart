@@ -7,6 +7,18 @@ class TerraforgeApi {
 
   Future<Map<String, dynamic>> health() => _client.get('/health');
 
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) {
+    return _client.post('/auth/login', {
+      'email': email,
+      'password': password,
+    });
+  }
+
+  Future<Map<String, dynamic>> me() => _client.get('/auth/me');
+
   Future<Map<String, dynamic>> runKriging({
     String element = 'ta_ppm',
     List<Map<String, dynamic>>? observations,

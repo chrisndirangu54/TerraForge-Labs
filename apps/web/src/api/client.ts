@@ -1,5 +1,12 @@
+import { getToken } from '../auth/token';
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export class ApiError extends Error {
   status: number;
@@ -26,14 +33,14 @@ export async function apiGet<T>(path: string, query?: Record<string, string>): P
       if (value) url.searchParams.set(key, value);
     });
   }
-  const response = await fetch(url.toString());
+  const response = await fetch(url.toString(), { headers: authHeaders() });
   return parseResponse<T>(response);
 }
 
 export async function apiPost<T>(path: string, body: Record<string, unknown>): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify(body),
   });
   return parseResponse<T>(response);
@@ -49,6 +56,7 @@ export async function uploadInstrument(
   form.append('file', file, filename);
   const response = await fetch(`${API_BASE_URL}/instruments/upload`, {
     method: 'POST',
+    headers: authHeaders(),
     body: form,
   });
   return parseResponse<Record<string, unknown>>(response);

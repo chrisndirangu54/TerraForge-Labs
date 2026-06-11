@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from backend.api.auth.dependencies import require_mutating_access
 from backend.api.tasks import generate_jorc_report
 
 router = APIRouter()
 
 
 @router.post("/reports/jorc")
-async def generate_jorc(payload: dict) -> dict:
+async def generate_jorc(
+    payload: dict,
+    _: dict = Depends(require_mutating_access),
+) -> dict:
     job_id = str(uuid.uuid4())
     generate_jorc_report(job_id, payload)
     return {"job_id": job_id}

@@ -23,6 +23,10 @@ networkx = "^3.3"
 redis = "^5.0"
 celery = "^5.4"
 sentry-sdk = {extras = ["fastapi"], version = "^2.4"}
+psycopg = {extras = ["binary"], version = "^3.2"}
+PyJWT = "^2.9"
+bcrypt = "^4.2"
+email-validator = "^2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
