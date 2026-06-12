@@ -2,3 +2,15 @@ __pycache__/
 .pytest_cache/
 .venv/
 .env
+
+# Build / deps
+apps/web/node_modules/
+apps/web/dist/
+
+# Runtime artifacts & uploads
+artifacts/
+tmp_uploads/
+backend/tmp_uploads/
+data/spectral/corpus/
+data/thin_section/corpus/
+data/uploads/

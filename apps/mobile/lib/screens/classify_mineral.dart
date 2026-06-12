@@ -1,10 +1,11 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import '../services/cloud_classification_service.dart';
 import '../services/mineral_classifier.dart';
+import '../widgets/results/api_result_view.dart';
+import '../widgets/results/classification_result_view.dart';
 
 class ClassifyMineralScreen extends StatefulWidget {
   const ClassifyMineralScreen({super.key});
@@ -45,8 +46,11 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
     });
     try {
       final response = await _cloud.classifySync(task: 'mineral');
+      final nested = response['result'];
       setState(() {
-        _cloudResult = response['result'] as Map<String, dynamic>? ?? response;
+        _cloudResult = nested is Map
+            ? Map<String, dynamic>.from(nested)
+            : response;
         _loading = false;
       });
     } catch (error) {
@@ -83,19 +87,12 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
           ],
           if (_localResult != null) ...[
             const SizedBox(height: 16),
-            const Text('Local result', style: TextStyle(fontWeight: FontWeight.bold)),
-            SelectableText(
-              JsonEncoder.withIndent('  ').convert(_localResult),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            ClassificationResultView(result: _localResult!, title: 'Local TFLite'),
           ],
           if (_cloudResult != null) ...[
             const SizedBox(height: 16),
-            const Text('Cloud GPU result', style: TextStyle(fontWeight: FontWeight.bold)),
-            SelectableText(
-              JsonEncoder.withIndent('  ').convert(_cloudResult),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            ClassificationResultView(result: _cloudResult!, title: 'Cloud GPU'),
+            ApiResultView(result: _cloudResult),
           ],
         ],
       ),

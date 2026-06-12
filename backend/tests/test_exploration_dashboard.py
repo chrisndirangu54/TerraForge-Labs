@@ -60,6 +60,29 @@ def test_deposit_summary_returns_block_preview():
     body = response.json()
     assert "ore_tonnes_estimate" in body
     assert "blocks_preview" in body
+    assert "mesh_url" in body
+    assert body["blocks_preview"]
+
+
+def test_deposit_model_generation_updates_summary():
+    headers = _auth_headers()
+    job = client.post(
+        "/deposit-model",
+        headers=headers,
+        json={"async": False},
+    )
+    assert job.status_code == 200
+    job_body = job.json()
+    job_id = job_body["job_id"]
+    assert job_body["status"] == "complete"
+    assert job_body["result"]["blocks_preview"]
+    assert job_body["result"]["block_model_url"] == f"minio://models/{job_id}_block_model.csv"
+
+    summary = client.get("/deposit/summary", headers=headers).json()
+    assert summary["source"] == f"{job_id}_block_model.csv"
+    assert summary["block_count"] == 20
+    assert summary["mesh_url"] == f"minio://models/{job_id}.obj"
+    assert len(summary["blocks_preview"]) == 20
 
 
 def test_field_catalog_lists_datasets():

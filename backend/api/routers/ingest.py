@@ -8,10 +8,40 @@ from backend.api.auth.projects import (
     ensure_projects_access,
     get_accessible_project_ids,
 )
+from backend.api.services.field_data_catalog import (
+    catalog_field_datasets,
+    register_field_upload,
+)
 from backend.api.services.ingest import ingest_observations, list_project_observations
+from backend.api.services.response_display import enrich_response
 from shared.schemas.observation import ObservationRecord
 
 router = APIRouter(prefix="/ingest", tags=["ingest"])
+
+
+@router.get("/field-catalog")
+async def field_catalog(user: dict = Depends(get_current_user)) -> dict:
+    _ = user
+    return enrich_response(catalog_field_datasets())
+
+
+@router.post("/field-upload/register")
+async def field_upload_register(
+    payload: dict,
+    user: dict = Depends(require_mutating_access),
+) -> dict:
+    _ = user
+    dataset = payload.get("dataset")
+    files = payload.get("files")
+    if not dataset or not isinstance(files, list) or not files:
+        raise HTTPException(status_code=400, detail="dataset and files are required")
+    return enrich_response(
+        register_field_upload(
+            dataset=str(dataset),
+            files=[str(path) for path in files],
+            project_id=payload.get("project_id"),
+        )
+    )
 
 
 @router.post("/observations")

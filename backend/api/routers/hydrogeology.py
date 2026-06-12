@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.api.auth.dependencies import require_mutating_access
 
+from backend.api.services.response_display import enrich_response
 from backend.processing.groundwater_model import (
     borehole_siting_report,
     build_modflow_model,
@@ -54,18 +55,27 @@ async def borehole_siting(payload: dict) -> dict:
 
 @router.get("/hydro/groundwater-table")
 async def groundwater_table(bbox: str = "") -> dict:
-    return {
-        "bbox": bbox,
-        "water_table_url": "minio://hydrogeology/water_table_latest.tif",
-        "contours_url": "minio://hydrogeology/water_table_contours.geojson",
-    }
+    return enrich_response(
+        {
+            "bbox": bbox,
+            "water_table_url": "minio://hydrogeology/water_table_latest.tif",
+            "contours_url": "minio://hydrogeology/water_table_contours.geojson",
+            "depth_range_m": [38, 52],
+            "method": "kriged_water_table_stub",
+            "updated_at": "2026-06-01T00:00:00Z",
+        }
+    )
 
 
 @router.get("/hydro/boreholes")
 async def boreholes(bbox: str = "") -> dict:
-    return {
-        "bbox": bbox,
-        "boreholes": [
-            {"id": "BH-MAT-001", "lon": 37.48, "lat": -1.15, "water_level_m": 42.0}
-        ],
-    }
+    return enrich_response(
+        {
+            "bbox": bbox,
+            "boreholes": [
+                {"id": "BH-MAT-001", "lon": 37.48, "lat": -1.15, "water_level_m": 42.0, "aquifer": "fractured_basement"},
+                {"id": "BH-MAT-002", "lon": 37.49, "lat": -1.14, "water_level_m": 39.5, "aquifer": "weathered_regolith"},
+                {"id": "BH-MAT-003", "lon": 37.47, "lat": -1.16, "water_level_m": 44.2, "aquifer": "fractured_basement"},
+            ],
+        }
+    )

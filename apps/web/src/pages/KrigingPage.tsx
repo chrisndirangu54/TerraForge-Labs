@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { apiGet, apiPost } from '../api/client';
+import { JobStatusPanel } from '../components/capture/JobStatusPanel';
 import { KrigingMapPreview } from '../components/kriging/KrigingMapPreview';
 import { VariogramChart } from '../components/kriging/VariogramChart';
 import { useProjectStore } from '../stores/projectStore';
@@ -168,7 +169,7 @@ export function KrigingPage() {
               bounds={Array.isArray(result.stats) ? undefined : (result.stats as { bounds?: number[] })?.bounds}
             />
           ) : null}
-          <pre>{JSON.stringify(job, null, 2)}</pre>
+          <JobStatusPanel job={job} title="Kriging job" />
         </section>
       ) : null}
     </div>

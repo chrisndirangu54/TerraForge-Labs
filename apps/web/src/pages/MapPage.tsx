@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '../api/client';
+import { DataTable } from '../components/capture/DataTable';
 import { MapView, type LayerGroup, type MapOverlay } from '../components/map/MapView';
+import { inferDisplay } from '../components/results/inferDisplay';
 import { useProjectStore } from '../stores/projectStore';
 
 type MappingLayersResponse = {
@@ -74,7 +76,14 @@ export function MapPage() {
       {tileMeta ? (
         <details style={{ marginTop: '1rem' }}>
           <summary>Vector tile metadata</summary>
-          <pre>{JSON.stringify(tileMeta, null, 2)}</pre>
+          {(() => {
+            const display = inferDisplay(tileMeta);
+            return display?.table ? (
+              <DataTable columns={display.table.columns} rows={display.table.rows} />
+            ) : (
+              <p style={{ fontSize: '0.85rem' }}>Tile redirect loaded successfully.</p>
+            );
+          })()}
         </details>
       ) : null}
     </div>

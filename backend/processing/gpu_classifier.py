@@ -247,6 +247,7 @@ def classify_gpu(task: str, payload: dict[str, Any]) -> dict[str, Any]:
             "project_id": payload.get("project_id"),
             "lon": payload.get("lon"),
             "lat": payload.get("lat"),
+            "task": task,
             "artifact_url": (
                 f"minio://classification/{task}/{result['label']}.json"
             ),
@@ -257,7 +258,9 @@ def classify_gpu(task: str, payload: dict[str, Any]) -> dict[str, Any]:
             },
         }
     )
-    return result
+    from backend.api.services.response_display import enrich_response
+
+    return enrich_response(result)
 
 
 def classify_gpu_batch(task: str, items: list[dict[str, Any]]) -> dict[str, Any]:

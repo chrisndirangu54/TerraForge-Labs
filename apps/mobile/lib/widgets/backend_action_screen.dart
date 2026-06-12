@@ -1,6 +1,6 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
+
+import 'results/api_result_view.dart';
 
 typedef BackendAction = Future<Map<String, dynamic>> Function();
 
@@ -65,10 +65,7 @@ class _BackendActionScreenState extends State<BackendActionScreen> {
           ],
           if (_result != null) ...[
             const SizedBox(height: 16),
-            SelectableText(
-              const JsonEncoder.withIndent('  ').convert(_result),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            ApiResultView(result: _result),
           ],
         ],
       ),

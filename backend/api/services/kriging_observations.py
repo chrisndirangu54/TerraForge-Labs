@@ -86,3 +86,34 @@ def resolve_kriging_observations(payload: dict[str, Any]) -> list[dict[str, Any]
             return observations_from_geojson(path, element=element)
 
     return []
+
+
+def extract_kriging_points(
+    observations: list[dict[str, Any]],
+    *,
+    element: str = "ta_ppm",
+) -> tuple[list[float], list[float], list[float]]:
+    from shared.constants import KRIGING_GRID_RESOLUTION
+
+    xs: list[float] = []
+    ys: list[float] = []
+    values: list[float] = []
+    spacing = KRIGING_GRID_RESOLUTION
+
+    for index, row in enumerate(observations):
+        if element not in row or row[element] is None:
+            continue
+        value = float(row[element])
+        if "lon" in row and "lat" in row:
+            xs.append(float(row["lon"]))
+            ys.append(float(row["lat"]))
+        elif "x" in row and "y" in row:
+            xs.append(float(row["x"]))
+            ys.append(float(row["y"]))
+        else:
+            cols = max(3, index + 3)
+            xs.append(float((index % cols) * spacing))
+            ys.append(float((index // cols) * spacing))
+        values.append(value)
+
+    return xs, ys, values

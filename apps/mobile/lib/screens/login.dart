@@ -13,10 +13,23 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TerraforgeApi _api = TerraforgeApi();
-  final _emailController = TextEditingController(text: 'geo@terraforge.test');
+  final _emailController = TextEditingController(text: 'geo@example.com');
   final _passwordController = TextEditingController(text: 'securepass1');
   bool _checking = false;
+  bool _registerMode = false;
   String? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    if (AuthService.instance.isAuthenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      });
+    }
+  }
 
   Future<void> _connect() async {
     setState(() {
@@ -25,26 +38,35 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       final health = await _api.health();
-      final login = await _api.login(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      AuthService.instance.setSession(
+      final email = _emailController.text.trim();
+      final password = _passwordController.text;
+
+      Map<String, dynamic> login;
+      if (_registerMode) {
+        await _api.register(email: email, password: password);
+        login = await _api.login(email: email, password: password);
+      } else {
+        login = await _api.login(email: email, password: password);
+      }
+
+      final user = Map<String, dynamic>.from(login['user'] as Map);
+      await AuthService.instance.setSession(
         token: login['access_token'] as String,
-        user: Map<String, dynamic>.from(login['user'] as Map),
+        user: user,
       );
       if (!mounted) return;
       setState(() {
         _status =
-            'Connected: ${health['status']} (v${health['version']}) as ${login['user']['email']}';
+            'Connected: ${health['status']} (v${health['version']}) as ${user['email']}';
         _checking = false;
       });
-      Navigator.pushNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/home');
     } catch (error) {
       if (!mounted) return;
       setState(() {
-        _status =
-            'Login failed for ${ApiConfig.baseUrl}. Register a user via POST /auth/register first.\n$error';
+        _status = _registerMode
+            ? 'Registration failed for ${ApiConfig.baseUrl}.\n$error'
+            : 'Login failed for ${ApiConfig.baseUrl}. Try Register first.\n$error';
         _checking = false;
       });
     }
@@ -82,7 +104,22 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _checking ? null : _connect,
-              child: Text(_checking ? 'Signing in...' : 'Sign In'),
+              child: Text(
+                _checking
+                    ? (_registerMode ? 'Registering...' : 'Signing in...')
+                    : (_registerMode ? 'Register & Sign In' : 'Sign In'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _checking
+                  ? null
+                  : () => setState(() => _registerMode = !_registerMode),
+              child: Text(
+                _registerMode
+                    ? 'Already have an account? Sign in'
+                    : 'New user? Register first',
+              ),
             ),
             if (_status != null) ...[
               const SizedBox(height: 16),

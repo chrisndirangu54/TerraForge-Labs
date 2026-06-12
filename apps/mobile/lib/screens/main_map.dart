@@ -1,24 +1,175 @@
 import 'package:flutter/material.dart';
 
 import '../services/map_service.dart';
-import '../widgets/backend_action_screen.dart';
+import '../services/terraforge_api.dart';
+import '../widgets/map/map_canvas.dart';
+import '../widgets/results/structured_json_view.dart';
 
-class MainMapScreen extends StatelessWidget {
+class MainMapScreen extends StatefulWidget {
   const MainMapScreen({super.key});
 
   @override
+  State<MainMapScreen> createState() => _MainMapScreenState();
+}
+
+class _MainMapScreenState extends State<MainMapScreen> {
+  final MapService _mapService = MapService();
+  final TerraforgeApi _api = TerraforgeApi();
+
+  bool _loading = false;
+  String? _error;
+  Map<String, dynamic>? _layers;
+  List<Map<String, dynamic>> _points = [];
+  String _mapMode = '2d_satellite';
+  final Set<String> _activeLayers = {};
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final layers = await _mapService.fetchLayers();
+      final boreholes = await _api.boreholes();
+      final holes = boreholes['boreholes'];
+      final points = <Map<String, dynamic>>[];
+      if (holes is List) {
+        for (final hole in holes.whereType<Map>()) {
+          final lon = hole['lon'];
+          final lat = hole['lat'];
+          if (lon != null && lat != null) {
+            points.add(Map<String, dynamic>.from(hole));
+          }
+        }
+      }
+
+      final modes = layers['map_modes'];
+      setState(() {
+        _layers = layers;
+        _points = points;
+        if (modes is List && modes.isNotEmpty) {
+          _mapMode = '${modes.first}';
+        }
+        _activeLayers
+          ..clear()
+          ..addAll(_defaultLayers(layers));
+        _loading = false;
+      });
+    } catch (error) {
+      setState(() {
+        _error = error.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  Iterable<String> _defaultLayers(Map<String, dynamic> layers) sync* {
+    final groups = layers['layer_groups'];
+    if (groups is Map) {
+      for (final entry in groups.entries) {
+        final groupLayers = entry.value;
+        if (groupLayers is List && groupLayers.isNotEmpty) {
+          yield '${groupLayers.first}';
+        }
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final mapService = MapService();
-    return BackendActionScreen(
-      title: 'Main Map',
-      description:
-          'Fetch mapping layers and a sample vector tile from the backend.',
-      actionLabel: 'Load Map Data',
-      onAction: () async {
-        final layers = await mapService.fetchLayers();
-        final tile = await mapService.fetchTile(10, 500, 400);
-        return {'layers': layers, 'sample_tile': tile};
-      },
+    final layerGroups = _layers?['layer_groups'];
+    final mapModes = _layers?['map_modes'] as List? ?? [];
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Main Map'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loading ? null : _load,
+          ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                const Text(
+                  'Mission map with layer catalogue and borehole overlay.',
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                ],
+                const SizedBox(height: 12),
+                if (mapModes.isNotEmpty)
+                  DropdownButtonFormField<String>(
+                    key: ValueKey(_mapMode),
+                    initialValue: _mapMode,
+                    decoration: const InputDecoration(
+                      labelText: 'Map mode',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: mapModes
+                        .map(
+                          (mode) => DropdownMenuItem(
+                            value: '$mode',
+                            child: Text('$mode'.replaceAll('_', ' ')),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value != null) setState(() => _mapMode = value);
+                    },
+                  ),
+                const SizedBox(height: 16),
+                MapCanvas(
+                  points: _points,
+                  activeLayers: _activeLayers.toList(),
+                ),
+                const SizedBox(height: 16),
+                Text('Layers', style: Theme.of(context).textTheme.titleSmall),
+                if (layerGroups is Map)
+                  ...layerGroups.entries.map((entry) {
+                    final groupLayers = entry.value;
+                    return ExpansionTile(
+                      title: Text('${entry.key}'.replaceAll('_', ' ')),
+                      initiallyExpanded: entry.key == 'geological',
+                      children: [
+                        if (groupLayers is List)
+                          ...groupLayers.map((layer) {
+                            final name = '$layer';
+                            return SwitchListTile(
+                              dense: true,
+                              title: Text(name.replaceAll('_', ' ')),
+                              value: _activeLayers.contains(name),
+                              onChanged: (enabled) {
+                                setState(() {
+                                  if (enabled == true) {
+                                    _activeLayers.add(name);
+                                  } else {
+                                    _activeLayers.remove(name);
+                                  }
+                                });
+                              },
+                            );
+                          }),
+                      ],
+                    );
+                  }),
+                if (_layers != null) ...[
+                  const SizedBox(height: 16),
+                  StructuredJsonView(data: _layers, title: 'Map catalogue'),
+                ],
+              ],
+            ),
     );
   }
 }

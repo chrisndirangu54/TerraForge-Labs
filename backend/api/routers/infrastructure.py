@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.api.auth.dependencies import require_mutating_access
 
+from backend.api.services.response_display import enrich_response
 from backend.processing.infrastructure import (
     mining_infrastructure_assessment,
     pipeline_route,
@@ -42,7 +43,17 @@ async def infra_mining_assessment(payload: dict) -> dict:
 
 @router.get("/infra/roads")
 async def infra_roads(bbox: str = "") -> dict:
-    return {"bbox": bbox, "roads_url": "minio://infrastructure/osm_roads.geojson"}
+    return enrich_response(
+        {
+            "bbox": bbox,
+            "roads_url": "minio://infrastructure/osm_roads.geojson",
+            "records": [
+                {"id": "RD-A2", "name": "Matuu–Thika track", "class": "unpaved", "length_km": 18.4, "lon": 37.49, "lat": -1.14},
+                {"id": "RD-B1", "name": "Site haul road", "class": "graded", "length_km": 4.2, "lon": 37.48, "lat": -1.15},
+                {"id": "RD-C3", "name": "County feeder", "class": "paved", "length_km": 12.1, "lon": 37.51, "lat": -1.13},
+            ],
+        }
+    )
 
 
 @router.get("/infra/power-grid")

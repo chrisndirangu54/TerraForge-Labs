@@ -9,8 +9,13 @@ from shared.constants import (
     TA_GRADE_THRESHOLD_PPM,
 )
 
-ARTIFACT_DIR = Path("artifacts")
-ARTIFACT_DIR.mkdir(exist_ok=True)
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+ARTIFACT_DIR = _repo_root() / "artifacts"
+ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def generate_deposit_model_files(payload: dict) -> dict:

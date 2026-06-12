@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../services/cloud_classification_service.dart';
+import '../widgets/results/api_result_view.dart';
+import '../widgets/results/gpu_capabilities_view.dart';
 
 class CloudGpuScreen extends StatefulWidget {
   const CloudGpuScreen({super.key});
@@ -68,10 +68,7 @@ class _CloudGpuScreenState extends State<CloudGpuScreen> {
           ),
           if (_capabilities != null) ...[
             const SizedBox(height: 12),
-            SelectableText(
-              JsonEncoder.withIndent('  ').convert(_capabilities),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            GpuCapabilitiesView(capabilities: _capabilities!),
           ],
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(
@@ -80,15 +77,9 @@ class _CloudGpuScreenState extends State<CloudGpuScreen> {
             items: const [
               DropdownMenuItem(value: 'mineral', child: Text('Mineral')),
               DropdownMenuItem(value: 'geobotany', child: Text('Geobotany')),
-              DropdownMenuItem(
-                value: 'thin_section',
-                child: Text('Thin section'),
-              ),
+              DropdownMenuItem(value: 'thin_section', child: Text('Thin section')),
               DropdownMenuItem(value: 'spectral', child: Text('Spectral')),
-              DropdownMenuItem(
-                value: 'grain_segmentation',
-                child: Text('Grain segmentation'),
-              ),
+              DropdownMenuItem(value: 'grain_segmentation', child: Text('Grain segmentation')),
             ],
             onChanged: _loading
                 ? null
@@ -112,10 +103,7 @@ class _CloudGpuScreenState extends State<CloudGpuScreen> {
           ],
           if (_result != null) ...[
             const SizedBox(height: 16),
-            SelectableText(
-              JsonEncoder.withIndent('  ').convert(_result),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            ApiResultView(result: _result, jobTitle: 'GPU classification job'),
           ],
         ],
       ),

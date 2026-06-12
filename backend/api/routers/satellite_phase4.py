@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.api.auth.dependencies import require_mutating_access
 
+from backend.api.services.response_display import enrich_response
 from backend.processing.satellite_feeds import (
     change_detect,
     insar_request,
@@ -24,7 +25,7 @@ def _parse_bbox(bbox: str) -> list[float]:
 async def satellite_scenes(
     bbox: str = "", start: str = "2026-01-01", end: str = "2026-06-30"
 ) -> dict:
-    return scene_catalogue(_parse_bbox(bbox), start, end)
+    return enrich_response(scene_catalogue(_parse_bbox(bbox), start, end))
 
 
 @router.get("/satellite/latest")

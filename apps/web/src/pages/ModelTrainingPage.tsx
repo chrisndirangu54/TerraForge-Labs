@@ -1,5 +1,12 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { apiGet, apiPost } from '../api/client';
+import { apiGet, apiPost, uploadTrainingData } from '../api/client';
+import { CaptureResultView } from '../components/capture/CaptureResultView';
+import { StructuredJsonView } from '../components/results/StructuredJsonView';
+import { inferDisplay } from '../components/results/inferDisplay';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useProjectStore } from '../stores/projectStore';
 
 type JobResponse = {
   job_id: string;
@@ -36,27 +43,44 @@ function pct(value: number | undefined) {
 }
 
 export function ModelTrainingPage() {
+  const selectedProject = useProjectStore((s) => s.getSelectedProject());
   const [task, setTask] = useState<DomainTask>('thin_section');
   const [epochs, setEpochs] = useState('6');
   const [cvFolds, setCvFolds] = useState('5');
+  const [className, setClassName] = useState('quartz');
+  const [classes, setClasses] = useState<string[]>([]);
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [cvReport, setCvReport] = useState<CvReport | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [pulling, setPulling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [job, setJob] = useState<JobResponse | null>(null);
+  const [uploadResult, setUploadResult] = useState<Record<string, unknown> | null>(null);
+  const [pairFile, setPairFile] = useState<File | null>(null);
+  const [pplFile, setPplFile] = useState<File | null>(null);
+  const [xplFile, setXplFile] = useState<File | null>(null);
+  const [spectralFile, setSpectralFile] = useState<File | null>(null);
 
   async function refreshMeta() {
     try {
-      const [manifestRes, cvRes] = await Promise.all([
+      const [manifestRes, cvRes, classRes] = await Promise.all([
         apiGet<Manifest>(`/training/${task}/manifest`),
         apiGet<CvReport>('/training/domain/eval'),
+        apiGet<{ classes: string[] }>(`/training/${task}/classes`),
       ]);
       setManifest(manifestRes);
       setCvReport(cvRes);
+      setClasses(classRes.classes ?? []);
+      if (classRes.classes?.length) {
+        setClassName((current) =>
+          classRes.classes.includes(current) ? current : classRes.classes[0],
+        );
+      }
     } catch {
       setManifest(null);
       setCvReport(null);
+      setClasses([]);
     }
   }
 
@@ -68,12 +92,35 @@ export function ModelTrainingPage() {
     setPulling(true);
     setError(null);
     try {
-      await apiPost('/training/datasets/pull', { async: false });
+      await apiPost('/training/datasets/pull', { async: false, include_domain: true });
       await refreshMeta();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
       setPulling(false);
+    }
+  }
+
+  async function uploadDataset(event: FormEvent) {
+    event.preventDefault();
+    setUploading(true);
+    setError(null);
+    setUploadResult(null);
+    try {
+      const result = await uploadTrainingData(task, {
+        className,
+        projectId: selectedProject?.id,
+        pairFile: pairFile ?? undefined,
+        pplFile: pplFile ?? undefined,
+        xplFile: xplFile ?? undefined,
+        spectralFile: spectralFile ?? undefined,
+      });
+      setUploadResult(result);
+      await refreshMeta();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -108,97 +155,160 @@ export function ModelTrainingPage() {
 
   return (
     <div>
-      <h2>Domain Model Training</h2>
-      <p>
-        Train thin-section (PPL/XPL) and spectral (USGS reflectance) CNNs with stratified
-        cross-validation on thousands of labeled samples.
-      </p>
+      <PageHeader
+        domain="geology"
+        title="Domain Model Training"
+        description="Upload thin-section PPL/XPL pairs and USGS reflectance spectra, then train stratified CV domain CNNs."
+        actions={
+          <Button variant="secondary" onClick={pullDatasets} disabled={pulling}>
+            {pulling ? 'Pulling...' : 'Pull corpora'}
+          </Button>
+        }
+      />
 
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
-        <button type="button" onClick={pullDatasets} disabled={pulling}>
-          {pulling ? 'Pulling corpora...' : 'Pull datasets (GBIF + thin-section + spectral)'}
-        </button>
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <Card title="Upload training sample">
+          <form onSubmit={uploadDataset} className="space-y-4">
+            <label className="block text-sm">
+              Task
+              <select
+                value={task}
+                onChange={(e) => setTask(e.target.value as DomainTask)}
+                className="mt-1 w-full rounded border border-forge-600 bg-forge-900 px-2 py-2"
+              >
+                {DOMAIN_TASKS.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {entry}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block text-sm">
+              Class label
+              <select
+                value={className}
+                onChange={(e) => setClassName(e.target.value)}
+                className="mt-1 w-full rounded border border-forge-600 bg-forge-900 px-2 py-2"
+              >
+                {classes.map((entry) => (
+                  <option key={entry} value={entry}>
+                    {entry}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {task === 'spectral' ? (
+              <label className="block text-sm">
+                Reflectance file (.npy, .csv, .tsv, .json)
+                <input
+                  type="file"
+                  accept=".npy,.csv,.tsv,.json"
+                  className="mt-1 block w-full text-sm"
+                  onChange={(e) => setSpectralFile(e.target.files?.[0] ?? null)}
+                />
+              </label>
+            ) : (
+              <>
+                <label className="block text-sm">
+                  PPL/XPL pair (.npy shape 2×H×W)
+                  <input
+                    type="file"
+                    accept=".npy"
+                    className="mt-1 block w-full text-sm"
+                    onChange={(e) => setPairFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <p className="text-xs text-sediment-dim">Or upload separate images:</p>
+                <label className="block text-sm">
+                  PPL image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="mt-1 block w-full text-sm"
+                    onChange={(e) => setPplFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  XPL image
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="mt-1 block w-full text-sm"
+                    onChange={(e) => setXplFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+              </>
+            )}
+
+            <Button type="submit" variant="primary" disabled={uploading}>
+              {uploading ? 'Uploading...' : 'Upload to training corpus'}
+            </Button>
+          </form>
+        </Card>
+
+        <Card title="Train model">
+          <form onSubmit={runTraining} className="space-y-4">
+            <label className="block text-sm">
+              Epochs
+              <input
+                value={epochs}
+                onChange={(e) => setEpochs(e.target.value)}
+                className="mt-1 w-full rounded border border-forge-600 bg-forge-900 px-2 py-2"
+              />
+            </label>
+            <label className="block text-sm">
+              CV folds
+              <input
+                value={cvFolds}
+                onChange={(e) => setCvFolds(e.target.value)}
+                className="mt-1 w-full rounded border border-forge-600 bg-forge-900 px-2 py-2"
+              />
+            </label>
+            <Button type="submit" variant="primary" disabled={loading}>
+              {loading ? 'Training...' : `Train ${task}`}
+            </Button>
+          </form>
+
+          {manifest ? (
+            <p className="mt-4 text-sm text-sediment-muted">
+              Source: {manifest.source ?? 'unknown'} — samples:{' '}
+              {manifest.sample_count ?? manifest.samples ?? 'n/a'}
+              {manifest.n_bands ? ` — bands: ${manifest.n_bands}` : ''}
+            </p>
+          ) : null}
+        </Card>
       </div>
 
-      <form
-        onSubmit={runTraining}
-        style={{
-          display: 'grid',
-          gap: '0.75rem',
-          maxWidth: 480,
-          padding: '1rem',
-          border: '1px solid #ddd',
-          borderRadius: 6,
-        }}
-      >
-        <label>
-          Task
-          <select value={task} onChange={(e) => setTask(e.target.value as DomainTask)}>
-            {DOMAIN_TASKS.map((entry) => (
-              <option key={entry} value={entry}>
-                {entry}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Epochs
-          <input value={epochs} onChange={(e) => setEpochs(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          CV folds
-          <input value={cvFolds} onChange={(e) => setCvFolds(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Training...' : 'Train + stratified CV'}
-        </button>
-      </form>
+      {cvMetrics?.pooled_metrics ? (
+        <Card title="Latest stratified CV" className="mb-6">
+          <div className="grid gap-2 text-sm sm:grid-cols-2">
+            <div>Accuracy: {pct(cvMetrics.pooled_metrics.accuracy)}</div>
+            <div>Macro F1: {pct(cvMetrics.pooled_metrics.macro_f1)}</div>
+            <div>Top-3: {pct(cvMetrics.pooled_metrics.top3_accuracy)}</div>
+            <div>Samples: {cvMetrics.n_samples ?? 'n/a'}</div>
+          </div>
+        </Card>
+      ) : null}
+
+      {error ? <pre className="tf-error mb-6">{error}</pre> : null}
+
+      {uploadResult ? (
+        <Card title="Upload response" className="mb-6">
+          <CaptureResultView display={inferDisplay(uploadResult)} fallback={uploadResult} />
+        </Card>
+      ) : null}
+
+      {job ? (
+        <Card title="Training job" className="mb-6">
+          <StructuredJsonView data={job} />
+        </Card>
+      ) : null}
 
       {manifest ? (
-        <section style={{ marginTop: '1rem', fontSize: '0.9rem' }}>
-          <h3 style={{ fontSize: '1rem' }}>Dataset manifest</h3>
-          <p style={{ margin: 0 }}>
-            Source: {manifest.source ?? 'unknown'} — samples:{' '}
-            {manifest.sample_count ?? manifest.samples ?? 'n/a'}
-            {manifest.n_bands ? ` — bands: ${manifest.n_bands}` : ''}
-          </p>
-        </section>
-      ) : null}
-
-      {cvMetrics?.pooled_metrics ? (
-        <section style={{ marginTop: '1rem' }}>
-          <h3 style={{ fontSize: '1rem' }}>Latest stratified CV</h3>
-          <table style={{ borderCollapse: 'collapse' }}>
-            <tbody>
-              <tr>
-                <td style={{ paddingRight: '1rem' }}>Accuracy</td>
-                <td>{pct(cvMetrics.pooled_metrics.accuracy)}</td>
-              </tr>
-              <tr>
-                <td style={{ paddingRight: '1rem' }}>Macro F1</td>
-                <td>{pct(cvMetrics.pooled_metrics.macro_f1)}</td>
-              </tr>
-              <tr>
-                <td style={{ paddingRight: '1rem' }}>Top-3</td>
-                <td>{pct(cvMetrics.pooled_metrics.top3_accuracy)}</td>
-              </tr>
-              <tr>
-                <td style={{ paddingRight: '1rem' }}>Samples</td>
-                <td>{cvMetrics.n_samples ?? 'n/a'}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-      ) : cvReport?.error ? (
-        <p style={{ fontSize: '0.85rem' }}>No CV report yet — run training to generate one.</p>
-      ) : null}
-
-      {error ? <pre style={{ color: 'crimson' }}>{error}</pre> : null}
-      {job ? (
-        <details style={{ marginTop: '1rem' }}>
-          <summary>Training job</summary>
-          <pre style={{ fontSize: '0.8rem' }}>{JSON.stringify(job, null, 2)}</pre>
-        </details>
+        <Card title="Dataset manifest">
+          <StructuredJsonView data={manifest} />
+        </Card>
       ) : null}
     </div>
   );

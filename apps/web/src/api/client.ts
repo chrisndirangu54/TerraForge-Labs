@@ -78,6 +78,44 @@ export async function captureUpload(
   return parseResponse<Record<string, unknown>>(response);
 }
 
+export async function uploadTrainingData(
+  task: 'thin_section' | 'spectral',
+  options: {
+    className: string;
+    projectId?: string;
+    pairFile?: File;
+    pplFile?: File;
+    xplFile?: File;
+    spectralFile?: File;
+  },
+): Promise<Record<string, unknown>> {
+  const path =
+    task === 'spectral' ? '/training/spectral/upload' : '/training/thin_section/upload';
+  const form = new FormData();
+  form.append('class_name', options.className);
+  if (options.projectId) form.append('project_id', options.projectId);
+
+  if (task === 'spectral') {
+    if (!options.spectralFile) {
+      throw new Error('spectralFile is required');
+    }
+    form.append('file', options.spectralFile, options.spectralFile.name);
+  } else if (options.pairFile) {
+    form.append('pair_file', options.pairFile, options.pairFile.name);
+  } else if (options.pplFile && options.xplFile) {
+    form.append('ppl_file', options.pplFile, options.pplFile.name);
+    form.append('xpl_file', options.xplFile, options.xplFile.name);
+  } else {
+    throw new Error('Provide pairFile or both pplFile and xplFile');
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: 'POST',
+    body: form,
+  });
+  return parseResponse<Record<string, unknown>>(response);
+}
+
 export function getApiBaseUrl(): string {
   return API_BASE_URL;
 }

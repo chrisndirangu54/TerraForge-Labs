@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 
 from backend.api.auth.dependencies import get_current_user, require_mutating_access
 from backend.api.services.storage import get_storage_service
@@ -10,6 +10,8 @@ from backend.processing.raster_pipeline import (
     ingest_raster,
     list_stac_items,
 )
+from backend.api.services.response_display import enrich_response
+from backend.processing.cog_tiles import cog_metadata, cog_preview, cog_tile_response
 from backend.processing.mapping_stack import (
     cesium_tileset_job,
     layer_catalogue,
@@ -44,7 +46,7 @@ async def raster_tile(z: int, x: int, y: int) -> RedirectResponse:
 
 @router.get("/tiles/offline/{region}")
 async def offline_tiles(region: str, include_satellite: bool = True) -> dict:
-    return offline_pack_manifest(region, include_satellite)
+    return enrich_response(offline_pack_manifest(region, include_satellite))
 
 
 @router.get("/basemap/sentinel2")
@@ -86,7 +88,33 @@ async def fetch_stac_item(
 
 @router.get("/mapping/layers")
 async def mapping_layers() -> dict:
-    return layer_catalogue()
+    return enrich_response(layer_catalogue())
+
+
+@router.get("/mapping/cog/{storage_key:path}/metadata")
+async def mapping_cog_metadata(storage_key: str) -> dict:
+    try:
+        return cog_metadata(storage_key)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/mapping/cog/{storage_key:path}/preview.png")
+async def mapping_cog_preview(storage_key: str) -> Response:
+    try:
+        content, media_type = cog_preview(storage_key)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(content=content, media_type=media_type)
+
+
+@router.get("/mapping/cog/{storage_key:path}/tiles/{z}/{x}/{y}.png")
+async def mapping_cog_tile(storage_key: str, z: int, x: int, y: int) -> Response:
+    try:
+        content, media_type = cog_tile_response(storage_key, z=z, x=x, y=y)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return Response(content=content, media_type=media_type)
 
 
 @router.get("/mapping/provider-plan")

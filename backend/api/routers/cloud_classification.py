@@ -8,6 +8,7 @@ from backend.api.auth.dependencies import require_mutating_access
 from backend.api.celery_app import celery_app
 from backend.api.jobs.store import get_job_store
 from backend.api.tasks import run_gpu_classification
+from backend.api.services.response_display import enrich_response
 from backend.processing.gpu_classifier import (
     SUPPORTED_TASKS,
     classify_gpu_batch,
@@ -56,13 +57,17 @@ async def gpu_capabilities() -> dict:
     from backend.api.celery_app import QUEUE_DEFAULT, QUEUE_GPU, QUEUE_REPORTS
 
     device = get_device_info()
-    return {
-        "supported_tasks": list(SUPPORTED_TASKS),
-        "device": device,
-        "queue": QUEUE_GPU,
-        "queues": [QUEUE_DEFAULT, QUEUE_GPU, QUEUE_REPORTS],
-        "async_default": True,
-    }
+    return enrich_response(
+        {
+            "supported_tasks": list(SUPPORTED_TASKS),
+            "device_name": device.get("device_name"),
+            "cuda_available": device.get("cuda_available"),
+            "device": device,
+            "queue": QUEUE_GPU,
+            "queues": [QUEUE_DEFAULT, QUEUE_GPU, QUEUE_REPORTS],
+            "async_default": True,
+        }
+    )
 
 
 @router.post("/classification/gpu")

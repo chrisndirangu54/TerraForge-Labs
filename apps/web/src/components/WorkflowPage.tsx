@@ -1,4 +1,6 @@
 import { FormEvent, ReactNode, useState } from 'react';
+import { CaptureResultView } from './capture/CaptureResultView';
+import { inferDisplay } from './results/inferDisplay';
 import { Button } from './ui/Button';
 import { PageHeader } from './ui/PageHeader';
 
@@ -53,7 +55,7 @@ export function WorkflowPage({
 
       {error ? <pre className="tf-error mb-6">{error}</pre> : null}
       {result ? (
-        <pre className="tf-code-block">{JSON.stringify(result, null, 2)}</pre>
+        <CaptureResultView display={inferDisplay(result)} fallback={result} />
       ) : null}
     </div>
   );

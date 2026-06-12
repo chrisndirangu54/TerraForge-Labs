@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { apiGet, apiPost, captureUpload } from '../api/client';
 import { CaptureResultView, type CaptureDisplay } from '../components/capture/CaptureResultView';
 import { DataTable } from '../components/capture/DataTable';
+import { inferDisplay } from '../components/results/inferDisplay';
 import { FileDropZone } from '../components/capture/FileDropZone';
 import { TransportPanel } from '../components/capture/TransportPanel';
 import { Button } from '../components/ui/Button';
@@ -212,7 +213,9 @@ export function UploadPage() {
               <p className="text-sm text-sediment-dim">Loading catalog…</p>
             )}
             {registerResult ? (
-              <pre className="tf-code-block mt-3 max-h-28 text-[10px]">{JSON.stringify(registerResult, null, 2)}</pre>
+              <div className="mt-3">
+                <CaptureResultView display={inferDisplay(registerResult)} fallback={registerResult} />
+              </div>
             ) : null}
           </Card>
         </div>

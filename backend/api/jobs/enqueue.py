@@ -116,8 +116,10 @@ def submit_job(
         },
     )
 
+    run_payload = {**payload, "job_id": job_id}
+
     if can_dispatch_async:
-        if _dispatch_celery(celery_task, job_id, payload):
+        if _dispatch_celery(celery_task, job_id, run_payload):
             response: dict[str, Any] = {
                 "job_id": job_id,
                 "status": "queued",
@@ -128,6 +130,6 @@ def submit_job(
             return response
         store.set(job_id, {"job_type": job_type, "status": "running", **job_meta})
 
-    runner(job_id, payload)
+    runner(job_id, run_payload)
     stored = store.get(job_id)
     return {"job_id": job_id, "poll_url": f"/jobs/{job_id}", **stored}

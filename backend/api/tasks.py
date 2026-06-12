@@ -48,8 +48,13 @@ def run_kriging(job_id: str, payload: dict) -> dict:
 
 
 def run_deposit_model(job_id: str, payload: dict) -> dict:
+    from backend.api.services.exploration_summary import load_blocks_preview
+
     _set(job_id, "deposit_model", status="running")
-    result = generate_deposit_model_files(payload)
+    run_payload = {**payload, "job_id": job_id}
+    result = generate_deposit_model_files(run_payload)
+    result["job_id"] = job_id
+    result["blocks_preview"] = load_blocks_preview(job_id=job_id)
     _set(job_id, "deposit_model", status="complete", result=result)
     return result
 
@@ -137,7 +142,10 @@ def pull_datasets(job_id: str, payload: dict) -> dict:
     from backend.api.services.dataset_pull import pull_all_datasets
 
     _set(job_id, "dataset_pull", status="running")
-    result = pull_all_datasets(include_gbif=bool(payload.get("include_gbif", True)))
+    result = pull_all_datasets(
+        include_gbif=bool(payload.get("include_gbif", True)),
+        include_domain=bool(payload.get("include_domain", True)),
+    )
     _set(job_id, "dataset_pull", status="complete", result=result)
     return result
 
@@ -180,6 +188,52 @@ def train_geobotany(job_id: str, payload: dict) -> dict:
     return result
 
 
+def train_thin_section(job_id: str, payload: dict) -> dict:
+    from models.thin_section_classifier.evaluate import evaluate_thin_section_classifier
+    from models.thin_section_classifier.train import train_thin_section_classifier
+
+    _set(job_id, "thin_section_train", status="running")
+    train_result = train_thin_section_classifier(
+        epochs=int(payload.get("epochs", 6)),
+        data_source=str(payload.get("data_source", "corpus")),
+        samples_per_class=int(payload.get("samples_per_class", 200)),
+    )
+    eval_result = evaluate_thin_section_classifier(
+        data_source=str(payload.get("data_source", "corpus")),
+        n_splits=int(payload.get("cv_folds", 5)),
+        epochs=int(payload.get("cv_epochs", payload.get("epochs", 6))),
+        samples_per_class=int(payload.get("samples_per_class", 80)),
+    )
+    result = {"train": train_result, "evaluation": eval_result}
+    _set(job_id, "thin_section_train", status="complete", result=result)
+    return result
+
+
+def train_spectral(job_id: str, payload: dict) -> dict:
+    from models.spectral_classifier.evaluate import evaluate_spectral_classifier
+    from models.spectral_classifier.train import train_spectral_classifier
+
+    _set(job_id, "spectral_train", status="running")
+    train_result = train_spectral_classifier(
+        epochs=int(payload.get("epochs", 8)),
+        data_source=str(payload.get("data_source", "corpus")),
+        samples_per_class=int(payload.get("samples_per_class", 400)),
+    )
+    eval_result = evaluate_spectral_classifier(
+        data_source=str(payload.get("data_source", "corpus")),
+        n_splits=int(payload.get("cv_folds", 5)),
+        epochs=int(payload.get("cv_epochs", payload.get("epochs", 8))),
+        samples_per_class=int(payload.get("samples_per_class", 120)),
+    )
+    result = {"train": train_result, "evaluation": eval_result}
+    _set(job_id, "spectral_train", status="complete", result=result)
+    return result
+
+
 celery_pull_datasets = _wrap_celery_task("terraforge.pull_datasets", pull_datasets)
 celery_train_mineral = _wrap_celery_task("terraforge.train_mineral", train_mineral)
 celery_train_geobotany = _wrap_celery_task("terraforge.train_geobotany", train_geobotany)
+celery_train_thin_section = _wrap_celery_task(
+    "terraforge.train_thin_section", train_thin_section
+)
+celery_train_spectral = _wrap_celery_task("terraforge.train_spectral", train_spectral)

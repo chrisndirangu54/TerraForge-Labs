@@ -1,8 +1,8 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 
 import '../services/geobotany_classifier.dart';
+import '../widgets/results/api_result_view.dart';
+import '../widgets/results/classification_result_view.dart';
 
 class GeobotanyScreen extends StatefulWidget {
   const GeobotanyScreen({super.key});
@@ -96,10 +96,10 @@ class _GeobotanyScreenState extends State<GeobotanyScreen> {
           ],
           if (_result != null) ...[
             const SizedBox(height: 16),
-            SelectableText(
-              const JsonEncoder.withIndent('  ').convert(_result),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-            ),
+            if (_result!['species'] != null)
+              ClassificationResultView(result: _result!, title: 'Geobotany result')
+            else
+              ApiResultView(result: _result),
           ],
         ],
       ),

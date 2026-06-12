@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from backend.api.auth.router import mutating_router
 
+from backend.api.services.response_display import enrich_response
 from backend.processing.gravity_reduction import run_gravity_reduction
 from backend.processing.inversion_2d import run_inversion_2d
 from backend.processing.inversion_mt import run_mt_inversion
@@ -24,8 +25,10 @@ async def fuse_seismic(payload: dict) -> dict:
         if inversion_type == "2d"
         else {"status": "1d-not-implemented"}
     )
-    return {
-        **inv,
-        "job_id": "seismic-job-1",
-        "velocity_model_url": "minio://seismic/velocity_model.tif",
-    }
+    return enrich_response(
+        {
+            **inv,
+            "job_id": "seismic-job-1",
+            "velocity_model_url": "minio://seismic/velocity_model.tif",
+        }
+    )

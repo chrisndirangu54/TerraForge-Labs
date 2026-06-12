@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { apiGet, apiPost } from '../api/client';
+import { CaptureResultView } from '../components/capture/CaptureResultView';
+import { inferDisplay } from '../components/results/inferDisplay';
 import { Button } from '../components/ui/Button';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useProjectStore } from '../stores/projectStore';
@@ -103,9 +105,12 @@ export function PlatformHubPage() {
               <pre className="tf-error mt-3 max-h-24 text-[10px]">{errors[feature.id]}</pre>
             ) : null}
             {results[feature.id] ? (
-              <pre className="tf-code-block mt-3 max-h-28 text-[10px]">
-                {JSON.stringify(results[feature.id], null, 2)}
-              </pre>
+              <div className="mt-3 max-h-48 overflow-auto">
+                <CaptureResultView
+                  display={inferDisplay(results[feature.id])}
+                  fallback={results[feature.id]}
+                />
+              </div>
             ) : null}
           </section>
         ))}

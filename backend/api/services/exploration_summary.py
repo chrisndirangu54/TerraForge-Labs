@@ -10,14 +10,93 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _latest_block_model_csv() -> Path | None:
-    artifacts = _repo_root() / "artifacts"
+def _artifacts_dir() -> Path:
+    return _repo_root() / "artifacts"
+
+
+def _block_model_csv_path(*, job_id: str | None = None) -> Path | None:
+    artifacts = _artifacts_dir()
+    if job_id:
+        path = artifacts / f"{job_id}_block_model.csv"
+        return path if path.exists() else None
+
     candidates = sorted(
         artifacts.glob("*_block_model.csv"),
         key=lambda path: path.stat().st_mtime,
         reverse=True,
     )
     return candidates[0] if candidates else None
+
+
+def _latest_block_model_csv() -> Path | None:
+    return _block_model_csv_path()
+
+
+def _deposit_artifact_urls(csv_path: Path | None) -> dict[str, str]:
+    if csv_path is None:
+        base = "deposit_model"
+    else:
+        base = csv_path.name.removesuffix("_block_model.csv")
+    return {
+        "mesh_url": f"minio://models/{base}.obj",
+        "block_model_url": f"minio://models/{base}_block_model.csv",
+        "probability_map_url": f"minio://models/{base}_probability.tif",
+        "tileset_url": f"minio://deposit-models/{base}/tileset.json",
+    }
+
+
+def load_blocks_preview(
+    limit: int = 24,
+    *,
+    job_id: str | None = None,
+) -> list[dict[str, Any]]:
+    csv_path = _block_model_csv_path(job_id=job_id)
+    if csv_path is None:
+        return [
+            {
+                "x": i,
+                "y": i % 4,
+                "z": i % 5,
+                "ta_ppm_mean": 110 + i * 2,
+                "ta_ppm_p10": 95 + i,
+                "ta_ppm_p90": 130 + i * 2,
+                "unit": "pegmatite" if i % 2 == 0 else "saprolite",
+            }
+            for i in range(min(limit, 20))
+        ]
+
+    rows: list[dict[str, Any]] = []
+    with open(csv_path, newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            rows.append(
+                {
+                    "x": float(row.get("x", 0) or 0),
+                    "y": float(row.get("y", 0) or 0),
+                    "z": float(row.get("z", 0) or 0),
+                    "ta_ppm_mean": float(row.get("ta_ppm_mean", row.get("ta_ppm", 0)) or 0),
+                    "ta_ppm_p10": float(row.get("ta_ppm_p10", 0) or 0),
+                    "ta_ppm_p90": float(row.get("ta_ppm_p90", 0) or 0),
+                    "unit": row.get("unit", "unknown"),
+                }
+            )
+            if len(rows) >= limit:
+                break
+    return rows
+
+
+def build_deposit_summary_response(*, project_id: str | None = None) -> dict[str, Any]:
+    csv_path = _latest_block_model_csv()
+    deposit = load_deposit_summary()
+    blocks = load_blocks_preview()
+    artifact_urls = _deposit_artifact_urls(csv_path)
+    return {
+        **deposit,
+        "project_id": project_id,
+        "blocks_preview": blocks,
+        **artifact_urls,
+        "centre": {"lon": 37.5, "lat": -1.15, "elevation_m": 1180},
+    }
 
 
 def load_deposit_summary() -> dict[str, Any]:

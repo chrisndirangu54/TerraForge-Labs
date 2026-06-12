@@ -4,6 +4,7 @@ import { Cartesian3, Viewer } from 'cesium';
 import { apiGet, apiPost } from '../api/client';
 import { JobStatusPanel } from '../components/capture/JobStatusPanel';
 import { DataTable } from '../components/capture/DataTable';
+import { StructuredJsonView } from '../components/results/StructuredJsonView';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { PageHeader } from '../components/ui/PageHeader';
@@ -51,19 +52,31 @@ export function DepositPage() {
 
   async function generateModel() {
     setError(null);
-    const started = await apiPost<Record<string, unknown>>('/deposit-model', {
-      project_id: selectedProject?.id,
-      async: false,
-    });
-    setJob(started);
-    const refreshed = await apiGet<Record<string, unknown>>('/deposit/summary');
-    setSummary(refreshed);
+    try {
+      const started = await apiPost<Record<string, unknown>>('/deposit-model', {
+        project_id: selectedProject?.id,
+        async: false,
+      });
+      let job = started;
+      if (started.job_id && started.status !== 'complete') {
+        job = await apiGet<Record<string, unknown>>(`/jobs/${started.job_id}`);
+      }
+      setJob(job);
+      const refreshed = await apiGet<Record<string, unknown>>('/deposit/summary');
+      setSummary(refreshed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
   }
 
   const summaryRows = summary
     ? Object.entries(summary)
         .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
         .map(([field, value]) => ({ field, value }))
+    : [];
+
+  const blockRows = Array.isArray(summary?.blocks_preview)
+    ? (summary.blocks_preview as Array<Record<string, unknown>>)
     : [];
 
   return (
@@ -124,6 +137,21 @@ export function DepositPage() {
           </Card>
         ) : null}
       </div>
+
+      {blockRows.length ? (
+        <Card title="Block model preview" className="mt-6">
+          <DataTable
+            columns={['x', 'y', 'z', 'ta_ppm_mean', 'unit']}
+            rows={blockRows}
+          />
+        </Card>
+      ) : null}
+
+      {summary ? (
+        <Card title="Complete deposit summary" className="mt-6">
+          <StructuredJsonView data={summary} />
+        </Card>
+      ) : null}
 
       <p className="mt-6 text-sm text-sediment-muted">
         <Link to="/financial" className="tf-link-ore">

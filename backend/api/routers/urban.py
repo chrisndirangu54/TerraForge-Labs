@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend.api.auth.dependencies import require_mutating_access
 
+from backend.api.services.response_display import enrich_response
 from backend.processing.urban_analysis import (
     classify_settlement,
     estimate_population,
@@ -42,7 +43,17 @@ async def conflict_endpoint(payload: dict) -> dict:
 
 @router.get("/urban/settlements")
 async def settlements(bbox: str = "") -> dict:
-    return {"bbox": bbox, "settlements_url": "minio://urban/settlements.geojson"}
+    return enrich_response(
+        {
+            "bbox": bbox,
+            "settlements_url": "minio://urban/settlements.geojson",
+            "settlements": [
+                {"id": "SET-MAT-01", "name": "Matuu Township", "lon": 37.48, "lat": -1.15, "buildings": 420, "class": "market_town"},
+                {"id": "SET-MAT-02", "name": "Kithimani", "lon": 37.52, "lat": -1.12, "buildings": 180, "class": "rural_cluster"},
+                {"id": "SET-MAT-03", "name": "Ikombe", "lon": 37.45, "lat": -1.18, "buildings": 95, "class": "farmstead"},
+            ],
+        }
+    )
 
 
 @router.get("/urban/land-use")
