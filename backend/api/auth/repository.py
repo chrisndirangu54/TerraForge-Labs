@@ -40,9 +40,7 @@ class AuthRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def add_membership(
-        self, project_id: str, user_id: str, role: str
-    ) -> dict[str, Any]:
+    def add_membership(self, project_id: str, user_id: str, role: str) -> dict[str, Any]:
         raise NotImplementedError
 
     @abstractmethod
@@ -118,9 +116,7 @@ class MemoryAuthRepository(AuthRepository):
         }
         return [self._projects[pid] for pid in project_ids if pid in self._projects]
 
-    def add_membership(
-        self, project_id: str, user_id: str, role: str
-    ) -> dict[str, Any]:
+    def add_membership(self, project_id: str, user_id: str, role: str) -> dict[str, Any]:
         if role not in VALID_ROLES:
             raise ValueError(f"Invalid role: {role}")
         membership = {"project_id": project_id, "user_id": user_id, "role": role}
@@ -166,10 +162,7 @@ class PostgresAuthRepository(AuthRepository):
                 (email.lower(), hash_password(password), display_name, role),
             ).fetchone()
             conn.commit()
-        user = self._row_to_user(row)
-        if user is None:
-            raise RuntimeError("Failed to create user")
-        return user
+        return self._row_to_user(row)
 
     def get_user_by_email(self, email: str) -> dict[str, Any] | None:
         from backend.api.db import get_connection
@@ -249,11 +242,13 @@ class PostgresAuthRepository(AuthRepository):
                     (user_id,),
                 ).fetchall()
             else:
-                rows = conn.execute("""
+                rows = conn.execute(
+                    """
                     SELECT id, slug, name, created_by
                     FROM projects
                     ORDER BY name
-                    """).fetchall()
+                    """
+                ).fetchall()
         return [
             {
                 "id": str(row["id"]),
@@ -264,9 +259,7 @@ class PostgresAuthRepository(AuthRepository):
             for row in rows
         ]
 
-    def add_membership(
-        self, project_id: str, user_id: str, role: str
-    ) -> dict[str, Any]:
+    def add_membership(self, project_id: str, user_id: str, role: str) -> dict[str, Any]:
         if role not in VALID_ROLES:
             raise ValueError(f"Invalid role: {role}")
         from backend.api.db import get_connection

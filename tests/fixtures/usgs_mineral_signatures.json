@@ -1,0 +1,13 @@
+{
+  "source": "USGS Spectral Library v7 (subset, normalized for TerraForge MINERAL_CLASSES)",
+  "minerals": {
+    "coltan": {"ta_ppm": 220, "nb_ppm": 1400, "sn_ppm": 45, "fe_ppm": 18000, "reflectance_2200nm": 0.42},
+    "cassiterite": {"ta_ppm": 60, "nb_ppm": 180, "sn_ppm": 120, "fe_ppm": 22000, "reflectance_2200nm": 0.38},
+    "quartz": {"ta_ppm": 15, "nb_ppm": 40, "sn_ppm": 8, "fe_ppm": 8000, "reflectance_2200nm": 0.91},
+    "feldspar": {"ta_ppm": 25, "nb_ppm": 90, "sn_ppm": 12, "fe_ppm": 12000, "reflectance_2200nm": 0.86},
+    "muscovite": {"ta_ppm": 35, "nb_ppm": 120, "sn_ppm": 18, "fe_ppm": 15000, "reflectance_2200nm": 0.79},
+    "tourmaline": {"ta_ppm": 80, "nb_ppm": 260, "sn_ppm": 30, "fe_ppm": 24000, "reflectance_2200nm": 0.55},
+    "ilmenite": {"ta_ppm": 45, "nb_ppm": 150, "sn_ppm": 20, "fe_ppm": 62000, "reflectance_2200nm": 0.22},
+    "unknown": {"ta_ppm": 70, "nb_ppm": 300, "sn_ppm": 25, "fe_ppm": 30000, "reflectance_2200nm": 0.50}
+  }
+}

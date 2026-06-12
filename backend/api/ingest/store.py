@@ -22,7 +22,6 @@ class IngestStore(ABC):
         self,
         *,
         project_id: str | None = None,
-        project_ids: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
@@ -60,18 +59,12 @@ class MemoryIngestStore(IngestStore):
         self,
         *,
         project_id: str | None = None,
-        project_ids: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
         items = self._rows
         if project_id:
             items = [row for row in items if row["project_id"] == project_id]
-        elif project_ids is not None:
-            if not project_ids:
-                return []
-            allowed = set(project_ids)
-            items = [row for row in items if row["project_id"] in allowed]
         return items[offset : offset + limit]
 
 
@@ -84,6 +77,7 @@ class PostgresIngestStore(IngestStore):
         with get_connection() as conn:
             for obs in observations:
                 upload_id = obs.upload_id or str(uuid.uuid4())
+                geom_sql = "NULL"
                 params: list[Any] = [
                     upload_id,
                     obs.project_id,
@@ -92,13 +86,13 @@ class PostgresIngestStore(IngestStore):
                     obs.crs,
                     obs.instrument_type,
                     obs.sample_id,
+                    json.dumps(obs.data),
+                    obs.flagged,
+                    obs.flag_reasons,
                 ]
                 if obs.lon is not None and obs.lat is not None:
                     geom_sql = "ST_SetSRID(ST_MakePoint(%s, %s), 4326)"
                     params.extend([obs.lon, obs.lat])
-                else:
-                    geom_sql = "NULL"
-                params.extend([json.dumps(obs.data), obs.flagged, obs.flag_reasons])
 
                 conn.execute(
                     f"""
@@ -120,7 +114,6 @@ class PostgresIngestStore(IngestStore):
         self,
         *,
         project_id: str | None = None,
-        project_ids: list[str] | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> list[dict[str, Any]]:
@@ -131,12 +124,6 @@ class PostgresIngestStore(IngestStore):
         if project_id:
             clauses.append("project_id = %s::uuid")
             params.append(project_id)
-        elif project_ids is not None:
-            if not project_ids:
-                return []
-            placeholders = ", ".join(["%s::uuid"] * len(project_ids))
-            clauses.append(f"project_id IN ({placeholders})")
-            params.extend(project_ids)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         params.extend([limit, offset])
         query = f"""
@@ -173,9 +160,9 @@ class PostgresIngestStore(IngestStore):
                     "data": data,
                     "flagged": row["flagged"],
                     "flag_reasons": row.get("flag_reasons") or [],
-                    "uploaded_at": (
-                        row["uploaded_at"].isoformat() if row["uploaded_at"] else None
-                    ),
+                    "uploaded_at": row["uploaded_at"].isoformat()
+                    if row["uploaded_at"]
+                    else None,
                 }
             )
         return items

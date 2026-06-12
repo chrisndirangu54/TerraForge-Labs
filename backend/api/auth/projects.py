@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException, status
 
 from backend.api.auth.repository import get_auth_repository
-from backend.api.auth.settings import is_auth_required
+from backend.api.auth.settings import AUTH_REQUIRED
 
 
 def get_accessible_project_ids(user: dict) -> set[str] | None:
@@ -40,7 +40,7 @@ def require_project_id_when_authenticated(user: dict, project_id: str | None) ->
     if project_id:
         ensure_project_access(user, project_id)
         return project_id
-    if is_auth_required() and user.get("id") != "anonymous":
+    if AUTH_REQUIRED and user.get("id") != "anonymous":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="project_id is required",

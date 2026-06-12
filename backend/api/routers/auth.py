@@ -4,12 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from backend.api.auth.dependencies import get_current_user, validate_role
 from backend.api.auth.jwt import create_access_token
-from backend.api.auth.models import (
-    LoginRequest,
-    RegisterRequest,
-    TokenResponse,
-    UserResponse,
-)
+from backend.api.auth.models import LoginRequest, RegisterRequest, TokenResponse, UserResponse
 from backend.api.auth.repository import get_auth_repository
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -27,9 +22,7 @@ async def register(payload: RegisterRequest) -> UserResponse:
             role=payload.role,
         )
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return UserResponse(**user)
 
 
@@ -42,9 +35,7 @@ async def login(payload: LoginRequest) -> TokenResponse:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
         )
-    token = create_access_token(
-        user["id"], {"role": user["role"], "email": user["email"]}
-    )
+    token = create_access_token(user["id"], {"role": user["role"], "email": user["email"]})
     return TokenResponse(access_token=token, user=UserResponse(**user))
 
 

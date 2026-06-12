@@ -1,0 +1,26 @@
+{
+  "records": [
+    {
+      "species": "Haumaniastrum montanum",
+      "decimalLatitude": -1.14,
+      "decimalLongitude": 37.51,
+      "year": 2018,
+      "basisOfRecord": "HUMAN_OBSERVATION"
+    },
+    {
+      "species": "Cyanotis sp",
+      "decimalLatitude": -1.16,
+      "decimalLongitude": 37.48,
+      "year": 2019,
+      "basisOfRecord": "HUMAN_OBSERVATION"
+    },
+    {
+      "species": "Aeolanthus elatior",
+      "decimalLatitude": -1.12,
+      "decimalLongitude": 37.53,
+      "year": 2020,
+      "basisOfRecord": "HUMAN_OBSERVATION"
+    }
+  ],
+  "queries": {"Haumaniastrum": 1, "Cyanotis": 1, "Aeolanthus": 1}
+}

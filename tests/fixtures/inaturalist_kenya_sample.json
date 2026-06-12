@@ -1,0 +1,88 @@
+{
+  "results": [
+    {
+      "species_guess": "Haumaniastrum montanum",
+      "latitude": -1.14,
+      "longitude": 37.51,
+      "observed_on_year": 2021,
+      "quality_grade_score": 0.95
+    },
+    {
+      "species_guess": "Haumaniastrum robertii",
+      "latitude": -1.141,
+      "longitude": 37.511,
+      "observed_on_year": 2020,
+      "quality_grade_score": 0.94
+    },
+    {
+      "species_guess": "Commelina zigzag",
+      "latitude": -1.16,
+      "longitude": 37.48,
+      "observed_on_year": 2020,
+      "quality_grade_score": 0.88
+    },
+    {
+      "species_guess": "Commelina zigzag",
+      "latitude": -1.161,
+      "longitude": 37.481,
+      "observed_on_year": 2019,
+      "quality_grade_score": 0.87
+    },
+    {
+      "species_guess": "Ocimum centraliafricanum",
+      "latitude": -1.12,
+      "longitude": 37.53,
+      "observed_on_year": 2019,
+      "quality_grade_score": 0.92
+    },
+    {
+      "species_guess": "Ocimum centraliafricanum",
+      "latitude": -1.121,
+      "longitude": 37.531,
+      "observed_on_year": 2018,
+      "quality_grade_score": 0.91
+    },
+    {
+      "species_guess": "Silene cobalticola",
+      "latitude": -1.13,
+      "longitude": 37.49,
+      "observed_on_year": 2022,
+      "quality_grade_score": 0.9
+    },
+    {
+      "species_guess": "Crotalaria cobalticola",
+      "latitude": -1.131,
+      "longitude": 37.491,
+      "observed_on_year": 2021,
+      "quality_grade_score": 0.89
+    },
+    {
+      "species_guess": "Senecio coronatus",
+      "latitude": -1.15,
+      "longitude": 37.47,
+      "observed_on_year": 2020,
+      "quality_grade_score": 0.86
+    },
+    {
+      "species_guess": "Thlaspi caerulescens",
+      "latitude": -1.17,
+      "longitude": 37.46,
+      "observed_on_year": 2019,
+      "quality_grade_score": 0.85
+    },
+    {
+      "species_guess": "healthy_grass",
+      "latitude": -1.18,
+      "longitude": 37.45,
+      "observed_on_year": 2023,
+      "quality_grade_score": 0.8
+    },
+    {
+      "species_guess": "unknown_vegetation",
+      "latitude": -1.19,
+      "longitude": 37.44,
+      "observed_on_year": 2022,
+      "quality_grade_score": 0.75
+    }
+  ]
+}

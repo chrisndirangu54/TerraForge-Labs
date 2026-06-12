@@ -8,7 +8,6 @@ import io
 import time
 from typing import Any
 
-from backend.ml.registry import get_model_registry
 from shared.constants import MINERAL_CLASSES
 
 SUPPORTED_TASKS = (
@@ -18,8 +17,6 @@ SUPPORTED_TASKS = (
     "spectral",
     "grain_segmentation",
 )
-
-_MODEL_CACHE: dict[str, Any] = {}
 
 TASK_LABELS: dict[str, list[str]] = {
     "mineral": MINERAL_CLASSES,
@@ -60,14 +57,18 @@ def get_device_info() -> dict[str, Any]:
         import torch
 
         cuda_available = torch.cuda.is_available()
-        device_name = torch.cuda.get_device_name(0) if cuda_available else "cpu"
+        device_name = (
+            torch.cuda.get_device_name(0) if cuda_available else "cpu"
+        )
         return {
             "backend": "torch",
             "cuda_available": cuda_available,
             "device": "cuda:0" if cuda_available else "cpu",
             "device_name": device_name,
             "torch_version": torch.__version__,
-            "cudnn_enabled": bool(cuda_available and torch.backends.cudnn.enabled),
+            "cudnn_enabled": bool(
+                cuda_available and torch.backends.cudnn.enabled
+            ),
             "mixed_precision": cuda_available,
         }
     except ImportError:
@@ -156,49 +157,21 @@ def _load_image_tensor(payload: dict[str, Any], device: Any) -> Any:
     return normalized.to(device)
 
 
-def _resolve_production_model(task: str) -> dict[str, Any]:
-    production = get_model_registry().get_production(task)
-    if production is not None:
-        return production
-    return {
-        "version": "builtin",
-        "params": {"backbone": "torchvision-resnet18", "feature_dim": 512},
-        "artifact_path": None,
-        "metrics": {},
-    }
-
-
-def _cache_key(task: str, model_record: dict[str, Any]) -> str:
-    return (
-        f"{task}:{model_record.get('version', 'builtin')}:"
-        f"{model_record.get('artifact_path', 'none')}"
-    )
-
-
-def _get_cached_torch_models(
-    task: str,
-    payload: dict[str, Any],
-    model_record: dict[str, Any],
-    labels: list[str],
-    feature_dim: int,
-    backbone_name: str,
-) -> tuple[Any, Any, Any, bool]:
+def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
     import torch
     import torch.nn as nn
     from torchvision import models
 
-    cache_key = _cache_key(task, model_record)
+    labels = TASK_LABELS[task]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     use_amp = device.type == "cuda"
-
-    cached = _MODEL_CACHE.get(cache_key)
-    if cached is not None:
-        return cached["backbone"], cached["head"], cached["device"], cached["use_amp"]
 
     if device.type == "cuda":
         torch.backends.cudnn.benchmark = True
 
     payload = {**payload, "task": task}
+    input_tensor = _load_image_tensor(payload, device)
+
     weights = models.ResNet18_Weights.DEFAULT
     backbone = models.resnet18(weights=weights)
     backbone.fc = nn.Identity()
@@ -208,44 +181,10 @@ def _get_cached_torch_models(
     seed = _task_seed(task, payload)
     generator = torch.Generator(device=device)
     generator.manual_seed(seed)
-    head = nn.Linear(feature_dim, len(labels))
+    head = nn.Linear(512, len(labels))
     nn.init.xavier_uniform_(head.weight, generator=generator)
     head.eval()
     head.to(device)
-
-    _MODEL_CACHE[cache_key] = {
-        "backbone": backbone,
-        "head": head,
-        "device": device,
-        "use_amp": use_amp,
-        "model": backbone_name,
-    }
-    return backbone, head, device, use_amp
-
-
-def clear_model_cache() -> None:
-    _MODEL_CACHE.clear()
-
-
-def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
-    import torch
-
-    labels = TASK_LABELS[task]
-    model_record = _resolve_production_model(task)
-    model_params = model_record.get("params") or {}
-    feature_dim = int(model_params.get("feature_dim", 512))
-    backbone_name = str(model_params.get("backbone", "torchvision-resnet18"))
-
-    payload = {**payload, "task": task}
-    backbone, head, device, use_amp = _get_cached_torch_models(
-        task,
-        payload,
-        model_record,
-        labels,
-        feature_dim,
-        backbone_name,
-    )
-    input_tensor = _load_image_tensor(payload, device)
 
     started = time.perf_counter()
     with torch.inference_mode():
@@ -269,7 +208,9 @@ def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
         reverse=True,
     )
     primary_label, confidence = ranked[0]
-    top3 = [{"label": label, "score": round(score, 4)} for label, score in ranked[:3]]
+    top3 = [
+        {"label": label, "score": round(score, 4)} for label, score in ranked[:3]
+    ]
 
     return {
         "task": task,
@@ -281,10 +222,8 @@ def _torch_classify(task: str, payload: dict[str, Any]) -> dict[str, Any]:
         "mixed_precision": use_amp,
         "batch_size": int(payload.get("batch_size", 1)),
         "inference_ms": elapsed_ms,
-        "model": backbone_name,
-        "model_version": model_record.get("version"),
-        "registry_artifact": model_record.get("artifact_path"),
-        "feature_dim": feature_dim,
+        "model": "torchvision-resnet18",
+        "feature_dim": 512,
     }
 
 
@@ -298,12 +237,9 @@ def classify_gpu(task: str, payload: dict[str, Any]) -> dict[str, Any]:
 
         result = _torch_classify(task, payload)
     except ImportError:
-        model_record = _resolve_production_model(task)
         result = _fallback_classify(task, payload)
         result["inference_ms"] = round((time.perf_counter() - started) * 1000, 2)
         result["model"] = "numpy-fallback"
-        result["model_version"] = model_record.get("version")
-        result["registry_artifact"] = model_record.get("artifact_path")
 
     device_info = get_device_info()
     result.update(
@@ -311,7 +247,9 @@ def classify_gpu(task: str, payload: dict[str, Any]) -> dict[str, Any]:
             "project_id": payload.get("project_id"),
             "lon": payload.get("lon"),
             "lat": payload.get("lat"),
-            "artifact_url": (f"minio://classification/{task}/{result['label']}.json"),
+            "artifact_url": (
+                f"minio://classification/{task}/{result['label']}.json"
+            ),
             "capabilities": {
                 "supported_tasks": list(SUPPORTED_TASKS),
                 "device_name": device_info["device_name"],

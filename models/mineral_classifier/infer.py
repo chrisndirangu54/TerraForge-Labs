@@ -6,7 +6,6 @@ from typing import Any
 
 import numpy as np
 
-from backend.processing.gpu_classifier import classify_gpu
 from models.mineral_classifier.dataset import DEFAULT_FEATURE_DIM, features_from_payload
 
 DEFAULT_CHECKPOINT = Path("artifacts/models/mineral/checkpoint.json")
@@ -51,9 +50,8 @@ def classify_mineral(
 
     probabilities = predict_proba(checkpoint, features)[0]
     ranked_idx = np.argsort(probabilities)[::-1]
-    primary_idx = int(ranked_idx[0])
-    label = classes[primary_idx]
-    confidence = float(probabilities[primary_idx])
+    label = classes[int(ranked_idx[0])]
+    confidence = float(probabilities[int(ranked_idx[0])])
 
     return {
         "label": label,
@@ -65,10 +63,12 @@ def classify_mineral(
             }
             for idx in ranked_idx[:3]
         ],
-        "model_type": checkpoint.get("model_type", "numpy-centroid"),
-        "checkpoint_path": str(checkpoint_path or DEFAULT_CHECKPOINT),
+        "model_version": checkpoint.get("version", "mineral-v1"),
+        "model_type": checkpoint.get("model_type", "numpy_centroid"),
     }
 
 
 def classify_mineral_cloud(payload: dict) -> dict:
+    from backend.processing.gpu_classifier import classify_gpu
+
     return classify_gpu("mineral", payload)

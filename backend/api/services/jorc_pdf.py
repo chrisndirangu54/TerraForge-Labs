@@ -15,9 +15,7 @@ def build_jorc_pdf(report: dict[str, Any], *, disclaimer: str) -> bytes:
     story: list[Any] = []
 
     project = report.get("project", "TerraForge Report")
-    story.append(
-        Paragraph(f"<b>JORC Exploration Report — {project}</b>", styles["Title"])
-    )
+    story.append(Paragraph(f"<b>JORC Exploration Report — {project}</b>", styles["Title"]))
     story.append(Spacer(1, 12))
     story.append(Paragraph(disclaimer.replace("\n", "<br/>"), styles["BodyText"]))
     story.append(Spacer(1, 12))

@@ -14,12 +14,8 @@ class OfflineMapPack {
   factory OfflineMapPack.fromJson(Map<String, dynamic> json) {
     return OfflineMapPack(
       region: json['region']?.toString() ?? 'unknown',
-      pmtilesPath: json['pmtiles_path']?.toString() ??
-          json['pmtilesPath']?.toString() ??
-          '',
-      estimatedSizeMb: (json['estimated_size_mb'] as num?)?.toInt() ??
-          (json['estimatedSizeMb'] as num?)?.toInt() ??
-          0,
+      pmtilesPath: json['pmtiles_path']?.toString() ?? json['pmtilesPath']?.toString() ?? '',
+      estimatedSizeMb: (json['estimated_size_mb'] ?? json['estimatedSizeMb'] ?? 0) as int,
     );
   }
 }

@@ -11,8 +11,7 @@ class ThinSectionViewerScreen extends StatelessWidget {
     final api = TerraforgeApi();
     return BackendActionScreen(
       title: 'Thin Section Viewer',
-      description:
-          'Classify a thin section through POST /classify-thin-section.',
+      description: 'Classify a thin section through POST /classify-thin-section.',
       actionLabel: 'Classify Thin Section',
       onAction: api.classifyThinSection,
     );

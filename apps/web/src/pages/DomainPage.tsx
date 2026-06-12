@@ -1,4 +1,5 @@
 import { ApiPanel } from '../components/ApiPanel';
+import { PageHeader } from '../components/ui/PageHeader';
 import { apiGet, apiPost } from '../api/client';
 
 type DomainPageProps = {
@@ -8,7 +9,8 @@ type DomainPageProps = {
 export function DomainPage({ title }: DomainPageProps) {
   return (
     <div>
-      <h2>{title}</h2>
+      <PageHeader title={title} description={`${title} workspace — API-backed exploration tools.`} />
+
       {title === 'Main Map' ? (
         <ApiPanel
           title="Mapping layers"
@@ -102,7 +104,10 @@ export function DomainPage({ title }: DomainPageProps) {
         'Infrastructure',
         'Satellite Feeds',
       ].includes(title) ? (
-        <p>Page scaffold connected to the shared API client. Extend this view for {title}.</p>
+        <p className="rounded-lg border border-forge-600/50 bg-forge-850/50 p-4 text-sm text-sediment-muted">
+          Page scaffold connected to the shared API client. Extend this view for{' '}
+          <span className="text-ore-300">{title}</span>.
+        </p>
       ) : null}
     </div>
   );

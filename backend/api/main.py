@@ -8,13 +8,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.api.middleware.security_headers import SecurityHeadersMiddleware
 from backend.api.middleware.telemetry import TelemetryMiddleware
 from backend.api.routers.auth import router as auth_router
+from backend.api.routers.capture import router as capture_router
 from backend.api.routers.cloud_classification import (
     router as cloud_classification_router,
 )
 from backend.api.routers.copilot import router as copilot_router
 from backend.api.routers.projects import router as projects_router
 from backend.api.routers.compliance import router as compliance_router
+from backend.api.routers.dashboard import router as dashboard_router
 from backend.api.routers.ethnolinguistics import router as ethnolinguistics_router
+from backend.api.routers.exploration import router as exploration_router
+from backend.api.routers.financial import router as financial_router
 from backend.api.routers.gap_closure import router as gap_closure_router
 from backend.api.routers.geobotany import router as geobotany_router
 from backend.api.routers.geodata import router as geodata_router
@@ -36,12 +40,14 @@ from backend.api.routers.modeling import router as modeling_router
 from backend.api.routers.models import router as models_router
 from backend.api.routers.mt3d import router as mt3d_router
 from backend.api.routers.paleontology import router as paleontology_router
+from backend.api.routers.platform import router as platform_router
 from backend.api.routers.petrography import router as petrography_router
 from backend.api.routers.reports import router as reports_router
 from backend.api.routers.satellite_phase4 import router as satellite_phase4_router
 from backend.api.routers.seismic import router as seismic_router
 from backend.api.routers.spectral import router as spectral_router
 from backend.api.routers.tectonics import router as tectonics_router
+from backend.api.routers.training import router as training_router
 from backend.api.routers.urban import router as urban_router
 
 app = FastAPI(title="Terraforge Labs API", version="0.2.0")
@@ -68,6 +74,7 @@ app.include_router(projects_router)
 app.include_router(cloud_classification_router)
 app.include_router(geodata_router)
 app.include_router(ingest_router)
+app.include_router(capture_router)
 app.include_router(instruments_router)
 app.include_router(modeling_router)
 app.include_router(models_router)
@@ -94,6 +101,11 @@ app.include_router(gap_closure_router)
 app.include_router(ethnolinguistics_router)
 app.include_router(labeling_router)
 app.include_router(copilot_router)
+app.include_router(training_router)
+app.include_router(financial_router)
+app.include_router(exploration_router)
+app.include_router(dashboard_router)
+app.include_router(platform_router)
 
 
 @app.get("/health")

@@ -46,7 +46,7 @@ def generate_text(
     if not key:
         raise RuntimeError("Gemini API key not configured (set LLM_API_KEY)")
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
         f"{model}:generateContent?key={key}"

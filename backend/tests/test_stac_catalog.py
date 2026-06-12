@@ -1,10 +1,6 @@
 from backend.api.services.stac_catalog import get_stac_catalog, reset_stac_catalog
 from backend.api.services.storage import get_storage_service, reset_storage_service
-from backend.processing.raster_pipeline import (
-    get_stac_item,
-    ingest_raster,
-    list_stac_items,
-)
+from backend.processing.raster_pipeline import get_stac_item, ingest_raster, list_stac_items
 
 
 def setup_function() -> None:
@@ -30,7 +26,7 @@ def test_stac_catalog_persists_ingested_raster():
     assert any(row["item_id"] == result["stac_item_id"] for row in listed)
 
 
-def test_mapping_stac_endpoints():
+def test_mapping_stac_endpoints(client=None):
     from fastapi.testclient import TestClient
 
     from backend.api.main import app

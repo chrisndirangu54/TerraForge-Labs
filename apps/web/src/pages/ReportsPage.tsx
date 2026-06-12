@@ -1,11 +1,16 @@
 import { FormEvent, useState } from 'react';
 import { apiGet, apiPost } from '../api/client';
+import { JobStatusPanel } from '../components/capture/JobStatusPanel';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { PageHeader } from '../components/ui/PageHeader';
 import { useProjectStore } from '../stores/projectStore';
 
 type JobResponse = {
   job_id: string;
   status: string;
   result?: Record<string, unknown>;
+  display?: Record<string, unknown>;
 };
 
 export function ReportsPage() {
@@ -28,6 +33,7 @@ export function ReportsPage() {
         commodity,
         report_type: reportType,
         project_id: selectedProject?.id,
+        async: false,
       });
       setJob(started);
       if (started.job_id && started.status !== 'complete') {
@@ -41,57 +47,65 @@ export function ReportsPage() {
     }
   }
 
+  const reportUrl =
+    job?.result && typeof job.result.report_url === 'string'
+      ? job.result.report_url
+      : job?.result && typeof job.result.pdf_url === 'string'
+        ? job.result.pdf_url
+        : null;
+
   return (
     <div>
-      <h2>Reports</h2>
-      <p>JORC and NI 43-101 report workflow with async job polling.</p>
+      <PageHeader
+        domain="core"
+        title="Reports"
+        description="JORC and NI 43-101 report workflow with structured job output."
+      />
 
-      <form
-        onSubmit={generateReport}
-        style={{
-          display: 'grid',
-          gap: '0.75rem',
-          maxWidth: 480,
-          padding: '1rem',
-          border: '1px solid #ddd',
-          borderRadius: 6,
-        }}
-      >
-        <label>
-          Report type
-          <select value={reportType} onChange={(e) => setReportType(e.target.value as 'jorc' | 'ni43101')}>
-            <option value="jorc">JORC</option>
-            <option value="ni43101">NI 43-101</option>
-          </select>
-        </label>
-        <label>
-          Project name
-          <input
-            value={projectName}
-            onChange={(e) => setProjectName(e.target.value)}
-            style={{ width: '100%' }}
-          />
-        </label>
-        <label>
-          Commodity
-          <input value={commodity} onChange={(e) => setCommodity(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        {selectedProject ? (
-          <p style={{ fontSize: '0.85rem', margin: 0 }}>
-            Linked project: {selectedProject.name} ({selectedProject.slug})
-          </p>
-        ) : null}
-        <button type="submit" disabled={loading}>
-          {loading ? 'Generating...' : 'Generate report'}
-        </button>
-      </form>
+      <Card title="Generate report" className="max-w-lg">
+        <form onSubmit={generateReport} className="space-y-4">
+          <label className="block">
+            <span className="tf-label mb-2 block">Report type</span>
+            <select
+              className="tf-input"
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value as 'jorc' | 'ni43101')}
+            >
+              <option value="jorc">JORC</option>
+              <option value="ni43101">NI 43-101</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="tf-label mb-2 block">Project name</span>
+            <input className="tf-input" value={projectName} onChange={(e) => setProjectName(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className="tf-label mb-2 block">Commodity</span>
+            <input className="tf-input" value={commodity} onChange={(e) => setCommodity(e.target.value)} />
+          </label>
+          {selectedProject ? (
+            <p className="font-mono text-xs text-sediment-muted">
+              Linked project: {selectedProject.name}
+            </p>
+          ) : null}
+          <Button type="submit" variant="primary" disabled={loading}>
+            {loading ? 'Generating…' : 'Generate report'}
+          </Button>
+        </form>
+      </Card>
 
-      {error ? <pre style={{ color: 'crimson' }}>{error}</pre> : null}
+      {error ? <pre className="tf-error mt-6">{error}</pre> : null}
       {job ? (
-        <section style={{ marginTop: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem' }}>Job status</h3>
-          <pre>{JSON.stringify(job, null, 2)}</pre>
-        </section>
+        <Card title="Report job" className="mt-6">
+          {reportUrl ? (
+            <p className="mb-4">
+              <a href={reportUrl} className="tf-link-ore" target="_blank" rel="noreferrer">
+                Download report PDF →
+              </a>
+            </p>
+          ) : null}
+          <JobStatusPanel job={job as Record<string, unknown>} />
+        </Card>
       ) : null}
     </div>
   );

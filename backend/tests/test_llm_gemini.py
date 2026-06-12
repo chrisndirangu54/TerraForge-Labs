@@ -14,9 +14,7 @@ def test_llm_status_reports_configuration():
 
 def test_rag_query_stub_mode_has_citations():
     os.environ["LLM_FORCE_STUB"] = "true"
-    result = rag_query(
-        "Explain kriging uncertainty for drill spacing", {"project_id": "p1"}
-    )
+    result = rag_query("Explain kriging uncertainty for drill spacing", {"project_id": "p1"})
     assert result["citation_count"] >= 1
     assert result["citations"][0]["id"]
     assert result["answer"]
@@ -39,7 +37,5 @@ def test_rag_query_uses_gemini_when_available(mock_gemini, _mock_use):
 
 
 def test_is_gemini_configured_without_key():
-    with patch.dict(
-        os.environ, {"LLM_PROVIDER": "gemini", "LLM_API_KEY": ""}, clear=False
-    ):
+    with patch.dict(os.environ, {"LLM_PROVIDER": "gemini", "LLM_API_KEY": ""}, clear=False):
         assert is_gemini_configured() is False

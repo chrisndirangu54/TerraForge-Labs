@@ -2,11 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+
 export type LayerGroup = Record<string, string[]>;
+
+export type MapOverlay = {
+  id: string;
+  type: string;
+  title: string;
+  tile_url_template?: string;
+  preview_url?: string;
+  opacity?: number;
+  available?: boolean;
+  storage_key?: string;
+};
 
 type MapViewProps = {
   layerGroups: LayerGroup;
   mapMode?: string;
+  overlays?: MapOverlay[];
   center?: [number, number];
   zoom?: number;
 };
@@ -16,12 +31,14 @@ const DEFAULT_CENTER: [number, number] = [37.5, -1.15];
 export function MapView({
   layerGroups,
   mapMode = '2d_satellite',
+  overlays = [],
   center = DEFAULT_CENTER,
   zoom = 11,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const [visibleLayers, setVisibleLayers] = useState<Record<string, boolean>>({});
+  const [activeOverlays, setActiveOverlays] = useState<Record<string, boolean>>({});
   const [mapError, setMapError] = useState<string | null>(null);
   const [useCanvasFallback, setUseCanvasFallback] = useState(false);
 
@@ -36,6 +53,14 @@ export function MapView({
     });
     setVisibleLayers(initial);
   }, [JSON.stringify(layerGroups)]);
+
+  useEffect(() => {
+    const initial: Record<string, boolean> = {};
+    overlays.forEach((overlay) => {
+      initial[overlay.id] = false;
+    });
+    setActiveOverlays(initial);
+  }, [JSON.stringify(overlays)]);
 
   useEffect(() => {
     if (!containerRef.current || useCanvasFallback) return undefined;
@@ -92,11 +117,59 @@ export function MapView({
     };
   }, [useCanvasFallback, center[0], center[1], zoom]);
 
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || useCanvasFallback) return;
+
+    overlays.forEach((overlay) => {
+      const sourceId = `overlay-${overlay.id}`;
+      const layerId = `overlay-${overlay.id}-raster`;
+      const enabled = activeOverlays[overlay.id] && overlay.tile_url_template;
+
+      if (!enabled) {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+        return;
+      }
+
+      const tileUrl = `${API_BASE_URL}${overlay.tile_url_template}`;
+
+      const attach = () => {
+        if (map.getSource(sourceId)) {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          map.removeSource(sourceId);
+        }
+        map.addSource(sourceId, {
+          type: 'raster',
+          tiles: [tileUrl],
+          tileSize: 256,
+        });
+        map.addLayer({
+          id: layerId,
+          type: 'raster',
+          source: sourceId,
+          paint: { 'raster-opacity': overlay.opacity ?? 0.65 },
+        });
+      };
+
+      if (map.isStyleLoaded()) {
+        attach();
+      } else {
+        map.once('load', attach);
+      }
+    });
+  }, [activeOverlays, overlays, useCanvasFallback]);
+
   function toggleLayer(layerId: string) {
     setVisibleLayers((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
   }
 
+  function toggleOverlay(overlayId: string) {
+    setActiveOverlays((prev) => ({ ...prev, [overlayId]: !prev[overlayId] }));
+  }
+
   const activeCount = Object.values(visibleLayers).filter(Boolean).length;
+  const activeOverlayCount = Object.values(activeOverlays).filter(Boolean).length;
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1rem' }}>
@@ -111,8 +184,30 @@ export function MapView({
       >
         <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Layers</h3>
         <p style={{ fontSize: '0.8rem', color: '#666', margin: '0 0 0.75rem' }}>
-          Mode: {mapMode} · {activeCount} active
+          Mode: {mapMode} · {activeCount} vector · {activeOverlayCount} overlay
         </p>
+        {overlays.length > 0 ? (
+          <div style={{ marginBottom: '0.75rem' }}>
+            <strong style={{ fontSize: '0.85rem' }}>Overlays</strong>
+            <ul style={{ listStyle: 'none', padding: 0, margin: '0.25rem 0 0' }}>
+              {overlays.map((overlay) => (
+                <li key={overlay.id} style={{ marginBottom: '0.25rem' }}>
+                  <label style={{ fontSize: '0.8rem', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={activeOverlays[overlay.id] ?? false}
+                      disabled={!overlay.tile_url_template}
+                      onChange={() => toggleOverlay(overlay.id)}
+                      style={{ marginRight: '0.35rem' }}
+                    />
+                    {overlay.title}
+                    {!overlay.available ? ' (run kriging first)' : ''}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         {Object.entries(layerGroups).map(([group, layers]) => (
           <div key={group} style={{ marginBottom: '0.75rem' }}>
             <strong style={{ fontSize: '0.85rem', textTransform: 'capitalize' }}>
@@ -161,7 +256,7 @@ export function MapView({
               ctx.fillStyle = '#fff';
               ctx.font = '14px sans-serif';
               ctx.fillText('Canvas map fallback (MapLibre unavailable)', 16, 24);
-              ctx.fillText(`${activeCount} layers selected`, 16, 44);
+              ctx.fillText(`${activeCount} layers · ${activeOverlayCount} overlays`, 16, 44);
             }}
             style={{ width: '100%', height: 480, borderRadius: 6, border: '1px solid #ddd' }}
           />

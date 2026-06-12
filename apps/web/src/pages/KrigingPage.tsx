@@ -1,11 +1,21 @@
 import { FormEvent, useState } from 'react';
 import { apiGet, apiPost } from '../api/client';
+import { KrigingMapPreview } from '../components/kriging/KrigingMapPreview';
+import { VariogramChart } from '../components/kriging/VariogramChart';
 import { useProjectStore } from '../stores/projectStore';
 
 type KrigingJob = {
   job_id: string;
   status: string;
   result?: Record<string, unknown>;
+};
+
+type VariogramAnalyzeResponse = {
+  empirical: { lags: number[]; semivariance: number[] };
+  fitted: { model: string; curve: Array<{ distance: number; gamma: number }> };
+  cross_validation: { rmse: number; mae: number; bias: number; n_folds: number };
+  error?: string;
+  count?: number;
 };
 
 const VARIOGRAM_MODELS = ['spherical', 'exponential', 'gaussian', 'linear'] as const;
@@ -17,8 +27,36 @@ export function KrigingPage() {
   const [gridResolution, setGridResolution] = useState(50);
   const [asyncMode, setAsyncMode] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [cvLoading, setCvLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [job, setJob] = useState<KrigingJob | null>(null);
+  const [variogram, setVariogram] = useState<VariogramAnalyzeResponse | null>(null);
+
+  async function runCrossValidation() {
+    setCvLoading(true);
+    setError(null);
+    try {
+      const analysis = await apiPost<VariogramAnalyzeResponse>(
+        '/geodata/variogram/cross-validate',
+        {
+          element,
+          variogram_model: variogramModel,
+          project_id: selectedProject?.id,
+          dataset: 'matuu_synthetic',
+        },
+      );
+      if (analysis.error) {
+        setError(`Variogram CV needs more data (${analysis.count ?? 0} points)`);
+        setVariogram(null);
+      } else {
+        setVariogram(analysis);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setCvLoading(false);
+    }
+  }
 
   async function runKriging(event: FormEvent) {
     event.preventDefault();
@@ -31,6 +69,7 @@ export function KrigingPage() {
         variogram_model: variogramModel,
         grid_resolution_m: gridResolution,
         project_id: selectedProject?.id,
+        dataset: 'matuu_synthetic',
         async: asyncMode,
       });
       if (asyncMode && started.job_id) {
@@ -46,10 +85,12 @@ export function KrigingPage() {
     }
   }
 
+  const result = (job?.result ?? null) as Record<string, unknown> | null;
+
   return (
     <div>
       <h2>Kriging Studio</h2>
-      <p>Configure variogram parameters and run the kriging pipeline.</p>
+      <p>Fit variograms with leave-one-out cross-validation, run PyKrige, and preview COG tiles.</p>
 
       <form
         onSubmit={runKriging}
@@ -94,15 +135,39 @@ export function KrigingPage() {
           <input type="checkbox" checked={asyncMode} onChange={(e) => setAsyncMode(e.target.checked)} />
           Run as async job
         </label>
-        <button type="submit" disabled={loading}>
-          {loading ? 'Running...' : 'Run kriging'}
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="button" onClick={runCrossValidation} disabled={cvLoading}>
+            {cvLoading ? 'Analyzing...' : 'Run variogram CV'}
+          </button>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Running...' : 'Run kriging'}
+          </button>
+        </div>
       </form>
 
       {error ? <pre style={{ color: 'crimson' }}>{error}</pre> : null}
-      {job ? (
+
+      {variogram && !variogram.error ? (
         <section style={{ marginTop: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem' }}>Pipeline output</h3>
+          <h3 style={{ fontSize: '1rem' }}>Variogram cross-validation</h3>
+          <VariogramChart analysis={variogram} />
+        </section>
+      ) : null}
+
+      {result ? (
+        <section style={{ marginTop: '1.5rem', display: 'grid', gap: '1rem' }}>
+          <h3 style={{ fontSize: '1rem' }}>Kriging output</h3>
+          {typeof result.cog_preview_url === 'string' ? (
+            <KrigingMapPreview
+              previewUrl={result.cog_preview_url}
+              tileTemplate={
+                typeof result.cog_tile_url_template === 'string'
+                  ? result.cog_tile_url_template
+                  : undefined
+              }
+              bounds={Array.isArray(result.stats) ? undefined : (result.stats as { bounds?: number[] })?.bounds}
+            />
+          ) : null}
           <pre>{JSON.stringify(job, null, 2)}</pre>
         </section>
       ) : null}

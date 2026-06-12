@@ -21,42 +21,21 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
   Map<String, dynamic>? _localResult;
   Map<String, dynamic>? _cloudResult;
 
-  @override
-  void initState() {
-    super.initState();
-    _classifier.loadModel();
-  }
-
-  @override
-  void dispose() {
-    _classifier.dispose();
-    super.dispose();
-  }
-
   Future<void> _classifyLocal() async {
     setState(() {
       _loading = true;
       _error = null;
     });
-    try {
-      final result = await _classifier.classify(File('demo_mineral.jpg'));
-      setState(() {
-        _localResult = {
-          'label': result.label,
-          'confidence': result.confidence,
-          'top3': result.top3,
-          'accelerator': result.accelerator,
-          'inference_ms': result.inferenceMs,
-          'target_met': result.inferenceMs < MineralClassifierService.targetInferenceMs,
-        };
-        _loading = false;
-      });
-    } catch (error) {
-      setState(() {
-        _error = error.toString();
-        _loading = false;
-      });
-    }
+    final result = await _classifier.classify(File('demo_mineral.jpg'));
+    setState(() {
+      _localResult = {
+        'label': result.label,
+        'confidence': result.confidence,
+        'top3': result.top3,
+        'accelerator': 'on-device-tflite',
+      };
+      _loading = false;
+    });
   }
 
   Future<void> _classifyCloud() async {
@@ -86,8 +65,7 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Use on-device TFLite with rule-based fallback from mineral_labels.txt, '
-            'or cloud GPU for higher accuracy. Local target: <500ms.',
+            'Use on-device TFLite for offline field work, or cloud GPU for higher accuracy.',
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -105,8 +83,7 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
           ],
           if (_localResult != null) ...[
             const SizedBox(height: 16),
-            const Text('Local result',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Local result', style: TextStyle(fontWeight: FontWeight.bold)),
             SelectableText(
               JsonEncoder.withIndent('  ').convert(_localResult),
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
@@ -114,8 +91,7 @@ class _ClassifyMineralScreenState extends State<ClassifyMineralScreen> {
           ],
           if (_cloudResult != null) ...[
             const SizedBox(height: 16),
-            const Text('Cloud GPU result',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            const Text('Cloud GPU result', style: TextStyle(fontWeight: FontWeight.bold)),
             SelectableText(
               JsonEncoder.withIndent('  ').convert(_cloudResult),
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),

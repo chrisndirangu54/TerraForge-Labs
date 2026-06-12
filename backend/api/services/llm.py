@@ -76,18 +76,18 @@ def _use_gemini() -> bool:
     return is_gemini_configured()
 
 
-def _retrieve_documents(query: str, limit: int = 3) -> list[dict[str, str]]:
-    tokens = {token.lower() for token in re.findall(r"[a-zA-Z]{3,}", query)}
-    scored: list[tuple[int, dict[str, str]]] = []
-    for doc in _KNOWLEDGE_BASE:
-        haystack = f"{doc['title']} {doc['text']} {doc['source']}".lower()
-        score = sum(1 for token in tokens if token in haystack)
-        if score:
-            scored.append((score, doc))
-    scored.sort(key=lambda item: item[0], reverse=True)
-    if not scored:
-        return _KNOWLEDGE_BASE[:limit]
-    return [doc for _score, doc in scored[:limit]]
+def _retrieve_documents(
+    query: str,
+    limit: int = 3,
+    *,
+    project_id: str | None = None,
+) -> list[dict[str, str]]:
+    from backend.api.services.vector_rag import vector_search
+
+    hits = vector_search(query, limit=limit, project_id=project_id)
+    if hits:
+        return hits
+    return _KNOWLEDGE_BASE[:limit]
 
 
 def _format_citation_block(citations: list[dict[str, str]]) -> str:
@@ -100,7 +100,7 @@ def _format_citation_block(citations: list[dict[str, str]]) -> str:
 def _build_stub_answer(
     query: str, docs: list[dict[str, str]], context: dict[str, Any]
 ) -> str:
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
     context_keys = ", ".join(sorted(context.keys())) or "none"
     citations = ", ".join(doc["id"] for doc in docs)
     return (
@@ -129,9 +129,13 @@ def _build_gemini_answer(
         "If evidence is insufficient, say what data is missing. "
         "End with a 'Sources:' section listing citation ids in brackets."
     )
-    prompt = f"Question: {query}\n\n" f"Project context:\n" + (
-        "\n".join(context_lines) if context_lines else "none"
-    ) + "\n\nRetrieved sources:\n" + "\n".join(source_lines)
+    prompt = (
+        f"Question: {query}\n\n"
+        f"Project context:\n"
+        + ("\n".join(context_lines) if context_lines else "none")
+        + "\n\nRetrieved sources:\n"
+        + "\n".join(source_lines)
+    )
     result = generate_text(prompt, system_instruction=system_instruction)
     answer = result["text"]
     if "Sources:" not in answer:
@@ -147,7 +151,10 @@ def _build_gemini_answer(
 
 def rag_query(query: str, data_context: dict[str, Any] | None = None) -> dict[str, Any]:
     context = data_context or {}
-    docs = _retrieve_documents(query)
+    docs = _retrieve_documents(
+        query,
+        project_id=context.get("project_id"),
+    )
     citations = [
         {
             "id": doc["id"],
@@ -171,6 +178,8 @@ def rag_query(query: str, data_context: dict[str, Any] | None = None) -> dict[st
             meta = {
                 "prompt_tokens": generated.get("prompt_tokens"),
                 "output_tokens": generated.get("output_tokens"),
+                "retrieval": "vector_tfidf",
+                "retrieved_ids": [doc["id"] for doc in docs],
             }
         except Exception as exc:
             answer = (
@@ -178,13 +187,20 @@ def rag_query(query: str, data_context: dict[str, Any] | None = None) -> dict[st
                 f"[gemini_fallback: {exc}]"
             )
             provider = "stub"
-            model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-            meta = {"gemini_error": str(exc)}
+            model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            meta = {
+                "gemini_error": str(exc),
+                "retrieval": "vector_tfidf",
+                "retrieved_ids": [doc["id"] for doc in docs],
+            }
     else:
         answer = _build_stub_answer(query, docs, context)
         provider = "stub"
-        model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
-        meta = {}
+        model = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+        meta = {
+            "retrieval": "vector_tfidf",
+            "retrieved_ids": [doc["id"] for doc in docs],
+        }
 
     return {
         "query": query,

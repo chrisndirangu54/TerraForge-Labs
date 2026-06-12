@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Rajdhani:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    @apply antialiased scroll-smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-forge-950 font-sans text-sediment;
+    background-image:
+      radial-gradient(ellipse 120% 80% at 50% -20%, rgba(74, 155, 155, 0.12), transparent),
+      radial-gradient(ellipse 60% 50% at 100% 50%, rgba(196, 120, 74, 0.06), transparent),
+      linear-gradient(180deg, #080c0a 0%, #0f1612 50%, #0a0e0c 100%);
+  }
+
+  #root {
+    @apply min-h-screen;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-semibold tracking-wide text-sediment;
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  ::selection {
+    @apply bg-mineral-500/40 text-sediment;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(74, 155, 155, 0.35) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: rgba(74, 155, 155, 0.3);
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 155, 155, 0.5);
+  }
+}
+
+@layer components {
+  .tf-panel {
+    @apply rounded-xl border border-forge-600/60 bg-forge-850/70 shadow-glass backdrop-blur-md;
+    background-image: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.02) 0%,
+      transparent 50%,
+      rgba(74, 155, 155, 0.02) 100%
+    );
+  }
+
+  .tf-panel-interactive {
+    @apply tf-panel transition-all duration-300 ease-smooth;
+  }
+
+  .tf-panel-interactive:hover {
+    @apply border-mineral-500/30 shadow-panel-hover -translate-y-0.5;
+  }
+
+  .tf-panel-header {
+    @apply border-b border-forge-600/50 px-5 py-3.5;
+  }
+
+  .tf-data {
+    @apply font-mono text-sm text-mineral-300;
+  }
+
+  .tf-label {
+    @apply text-xs font-medium uppercase tracking-widest text-sediment-muted;
+  }
+
+  .tf-input {
+    @apply w-full rounded-lg border border-forge-600/80 bg-forge-900/80 px-3.5 py-2.5 font-sans text-sediment shadow-inner transition-all duration-200 placeholder:text-sediment-dim focus:border-mineral-500/70 focus:bg-forge-900 focus:outline-none focus:ring-2 focus:ring-mineral-500/25;
+  }
+
+  .tf-link {
+    @apply text-mineral-400 hover:text-mineral-300;
+  }
+
+  .tf-link-ore {
+    @apply text-ore-400 hover:text-ore-300;
+  }
+
+  .tf-badge {
+    @apply inline-flex items-center rounded-md border px-2.5 py-0.5 font-mono text-xs;
+  }
+
+  .tf-badge-live {
+    @apply tf-badge border-moss-500/50 bg-moss-600/20 text-mineral-300;
+  }
+
+  .tf-badge-ore {
+    @apply tf-badge border-ore-500/40 bg-ore-600/15 text-ore-300;
+  }
+
+  .tf-code-block {
+    @apply overflow-x-auto rounded-lg border border-forge-600/60 bg-forge-950/80 p-4 font-mono text-xs leading-relaxed text-mineral-300;
+  }
+
+  .tf-error {
+    @apply tf-code-block border-red-900/50 text-red-300;
+  }
+
+  .tf-stat-card {
+    @apply relative overflow-hidden rounded-xl border border-forge-600/50 bg-forge-850/60 p-5 shadow-glass backdrop-blur-md transition-all duration-300 ease-smooth;
+  }
+
+  .tf-stat-card::before {
+    content: '';
+    @apply pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: radial-gradient(
+      ellipse 80% 60% at 0% 0%,
+      rgba(74, 155, 155, 0.08),
+      transparent 70%
+    );
+  }
+
+  .tf-stat-card:hover::before {
+    @apply opacity-100;
+  }
+
+  .tf-stat-card:hover {
+    @apply border-mineral-500/25 shadow-panel-hover;
+  }
+
+  .tf-traverse-tile {
+    @apply flex flex-col gap-1 rounded-lg border border-forge-600/50 bg-forge-900/40 px-4 py-3 transition-all duration-200 ease-smooth hover:border-mineral-500/40 hover:bg-forge-800/60 hover:shadow-glow;
+  }
+
+  .tf-traverse-tile span:first-child {
+    @apply font-display text-sm font-semibold text-sediment transition-colors group-hover:text-mineral-300;
+  }
+
+  .tf-traverse-tile span:last-child {
+    @apply text-xs text-sediment-dim;
+  }
+
+  .tf-orb {
+    @apply pointer-events-none absolute rounded-full blur-3xl;
+  }
+
+  .tf-divider-glow {
+    @apply h-px w-full;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(74, 155, 155, 0.4) 30%,
+      rgba(196, 120, 74, 0.3) 70%,
+      transparent
+    );
+  }
+
+  .tf-nav-icon {
+    @apply flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-forge-600/40 bg-forge-800/60 text-sediment-muted transition-all duration-200;
+  }
+
+  .tf-stagger > * {
+    @apply animate-slide-up opacity-0;
+  }
+
+  .tf-stagger > *:nth-child(1) { animation-delay: 0ms; }
+  .tf-stagger > *:nth-child(2) { animation-delay: 60ms; }
+  .tf-stagger > *:nth-child(3) { animation-delay: 120ms; }
+  .tf-stagger > *:nth-child(4) { animation-delay: 180ms; }
+  .tf-stagger > *:nth-child(5) { animation-delay: 240ms; }
+  .tf-stagger > *:nth-child(6) { animation-delay: 300ms; }
+  .tf-stagger > *:nth-child(7) { animation-delay: 360ms; }
+  .tf-stagger > *:nth-child(8) { animation-delay: 420ms; }
+}
+
+@layer utilities {
+  .text-gradient-ore {
+    @apply bg-gradient-to-r from-ore-400 via-ore-300 to-strata-300 bg-clip-text text-transparent;
+  }
+
+  .text-gradient-mineral {
+    @apply bg-gradient-to-r from-mineral-400 to-mineral-300 bg-clip-text text-transparent;
+  }
+}

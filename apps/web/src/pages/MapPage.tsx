@@ -1,17 +1,19 @@
 import { useEffect, useState } from 'react';
 import { apiGet } from '../api/client';
-import { MapView, type LayerGroup } from '../components/map/MapView';
+import { MapView, type LayerGroup, type MapOverlay } from '../components/map/MapView';
 import { useProjectStore } from '../stores/projectStore';
 
 type MappingLayersResponse = {
   map_modes: string[];
   layer_groups: LayerGroup;
+  overlays?: MapOverlay[];
 };
 
 export function MapPage() {
   const selectedProject = useProjectStore((s) => s.getSelectedProject());
   const [mapMode, setMapMode] = useState('2d_satellite');
   const [layerGroups, setLayerGroups] = useState<LayerGroup>({});
+  const [overlays, setOverlays] = useState<MapOverlay[]>([]);
   const [tileMeta, setTileMeta] = useState<Record<string, unknown> | null>(null);
   const [stacCount, setStacCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
@@ -28,6 +30,7 @@ export function MapPage() {
     ])
       .then(([layers, tile, stac]) => {
         setLayerGroups(layers.layer_groups);
+        setOverlays(layers.overlays ?? []);
         if (layers.map_modes.length > 0) {
           setMapMode(layers.map_modes[0]);
         }
@@ -42,7 +45,7 @@ export function MapPage() {
     <div>
       <h2>Main Map</h2>
       <p>
-        MapLibre mission control with layer catalogue from the backend.
+        MapLibre mission control with layer catalogue and kriging COG overlays from the backend.
         {selectedProject ? ` Project: ${selectedProject.name}` : ' No project selected.'}
       </p>
       {loading ? <p>Loading map catalogue...</p> : null}
@@ -61,7 +64,7 @@ export function MapPage() {
               )}
             </select>
           </label>
-          <MapView layerGroups={layerGroups} mapMode={mapMode} />
+          <MapView layerGroups={layerGroups} mapMode={mapMode} overlays={overlays} />
         </>
       ) : null}
       <p style={{ marginTop: '0.75rem', color: '#555' }}>

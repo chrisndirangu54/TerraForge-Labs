@@ -12,7 +12,7 @@ router = APIRouter()
 @router.post("/deposit-model")
 async def generate_deposit_model(
     payload: dict,
-    user: dict = Depends(require_mutating_access),
+    _: dict = Depends(require_mutating_access),
 ) -> dict:
     return submit_job(
         job_type="deposit_model",
@@ -20,5 +20,4 @@ async def generate_deposit_model(
         runner=run_deposit_model,
         celery_task=celery_run_deposit_model,
         async_default=True,
-        user=user,
     )

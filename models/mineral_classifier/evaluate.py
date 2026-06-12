@@ -31,7 +31,13 @@ def evaluate_mineral_classifier(
     checkpoint = load_checkpoint(checkpoint_path or DEFAULT_CHECKPOINT)
     classes = checkpoint["classes"]
 
-    x, y, _ = generate_synthetic_dataset(seed=seed)
+    if checkpoint.get("model_type") == "linear_probe_imagenet":
+        from models.mineral_classifier.dataset_sota import load_sota_dataset
+
+        x, y, _ = load_sota_dataset()
+    else:
+        feature_dim = int(checkpoint.get("feature_dim", 32))
+        x, y, _ = generate_synthetic_dataset(seed=seed, n_features=feature_dim)
     _x_train, x_test, _y_train, y_test = train_test_split(x, y, seed=seed + 3)
 
     probabilities = predict_proba(checkpoint, x_test)
@@ -63,31 +69,43 @@ def evaluate_mineral_classifier(
 
 def evaluate_stub() -> dict:
     checkpoint = DEFAULT_CHECKPOINT
-    if not checkpoint.exists():
+    if checkpoint.exists():
+        saved = json.loads(checkpoint.read_text(encoding="utf-8"))
+        if saved.get("data_source") in {"real", "pretrained_sota"}:
+            from models.mineral_classifier.train import train_mineral_classifier
+
+            train_mineral_classifier(data_source="synthetic")
+    elif not checkpoint.exists():
         from models.mineral_classifier.train import train_mineral_classifier
 
         train_mineral_classifier()
     metrics = evaluate_mineral_classifier(checkpoint_path=checkpoint)
-    reported_accuracy = 0.86
+    holdout = float(metrics["accuracy"])
     record = log_training_run(
         "mineral",
-        params={"backbone": "numpy-centroid", "feature_dim": 32},
+        params={
+            "backbone": "numpy-centroid",
+            "feature_dim": 32,
+            "evaluation": "holdout",
+        },
         metrics={
-            "accuracy": reported_accuracy,
-            "holdout_accuracy": metrics["accuracy"],
-            "f1_macro": 0.84,
+            "accuracy": holdout,
+            "holdout_accuracy": holdout,
+            "holdout_samples": metrics.get("holdout_samples", 0),
         },
         artifact_path=metrics["artifact_path"],
         version="v0.2.0-eval",
         stage="staging",
     )
     return {
-        "accuracy": reported_accuracy,
-        "f1_macro": 0.84,
+        "accuracy": holdout,
+        "holdout_accuracy": holdout,
+        "holdout_samples": metrics.get("holdout_samples", 0),
+        "meets_threshold": metrics.get("meets_threshold", False),
+        "min_required_accuracy": metrics.get("min_required_accuracy"),
         "version": record["version"],
         "stage": record["stage"],
         "artifact_path": record["artifact_path"],
-        "holdout_accuracy": metrics["accuracy"],
     }
 
 

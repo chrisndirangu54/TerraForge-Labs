@@ -39,10 +39,6 @@ if Celery:
         ),
         task_routes=TASK_ROUTES,
         imports=("backend.api.tasks",),
-        task_always_eager=os.getenv("CELERY_TASK_ALWAYS_EAGER", "").lower()
-        in {"1", "true", "yes"},
-        task_eager_propagates=os.getenv("CELERY_TASK_EAGER_PROPAGATES", "").lower()
-        in {"1", "true", "yes"},
     )
 else:
     celery_app = None

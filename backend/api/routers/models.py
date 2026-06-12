@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 
 from backend.api.auth.dependencies import get_current_user, require_roles
-from backend.ml.registry import SUPPORTED_TASKS, get_model_registry
+from backend.ml.registry import SUPPORTED_TASKS, Stage, get_model_registry
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -50,9 +50,7 @@ async def promote_model_version(
 
     stage = payload.get("stage", "production")
     if stage not in {"staging", "production"}:
-        raise HTTPException(
-            status_code=400, detail="stage must be staging or production"
-        )
+        raise HTTPException(status_code=400, detail="stage must be staging or production")
 
     registry = get_model_registry()
     try:

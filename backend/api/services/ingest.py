@@ -32,8 +32,7 @@ def rows_to_observations(
         payload = {
             key: value
             for key, value in row.items()
-            if key
-            not in {"lon", "lat", "sample_id", "profile_id", "flagged", "flag_reasons"}
+            if key not in {"lon", "lat", "sample_id", "profile_id", "flagged", "flag_reasons"}
         }
         observations.append(
             ObservationRecord(
@@ -73,17 +72,17 @@ def ingest_observations(observations: list[ObservationRecord]) -> dict:
 def list_project_observations(
     *,
     project_id: str | None = None,
-    project_ids: list[str] | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> dict:
     from backend.api.ingest.store import get_ingest_store
 
     store = get_ingest_store()
-    items = store.list_observations(
-        project_id=project_id,
-        project_ids=project_ids,
-        limit=limit,
-        offset=offset,
-    )
-    return {"items": items, "limit": limit, "offset": offset, "count": len(items)}
+    items = store.list_observations(project_id=project_id, limit=limit, offset=offset)
+    return {
+        "items": items,
+        "observations": items,
+        "limit": limit,
+        "offset": offset,
+        "count": len(items),
+    }

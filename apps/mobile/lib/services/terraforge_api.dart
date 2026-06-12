@@ -7,18 +7,6 @@ class TerraforgeApi {
 
   Future<Map<String, dynamic>> health() => _client.get('/health');
 
-  Future<Map<String, dynamic>> login({
-    required String email,
-    required String password,
-  }) {
-    return _client.post('/auth/login', {
-      'email': email,
-      'password': password,
-    });
-  }
-
-  Future<Map<String, dynamic>> me() => _client.get('/auth/me');
-
   Future<Map<String, dynamic>> runKriging({
     String element = 'ta_ppm',
     List<Map<String, dynamic>>? observations,
@@ -71,21 +59,6 @@ class TerraforgeApi {
   Future<Map<String, dynamic>> classifyThinSection() {
     return _client.post('/classify-thin-section', {
       'image_path': 'demo_thin_section.jpg',
-    });
-  }
-
-  Future<Map<String, dynamic>> gpuCapabilities() {
-    return _client.get('/classification/gpu/capabilities');
-  }
-
-  Future<Map<String, dynamic>> classifyGpuSync({
-    required String task,
-    String projectId = 'field-demo',
-  }) {
-    return _client.post('/classification/gpu/sync', {
-      'task': task,
-      'project_id': projectId,
-      'async': false,
     });
   }
 }

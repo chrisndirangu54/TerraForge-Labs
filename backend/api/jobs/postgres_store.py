@@ -15,9 +15,6 @@ class PostgresJobStore(JobStore):
         meta = {k: v for k, v in data.items() if k not in {"status", "result"}}
         now = datetime.now(timezone.utc)
 
-        project_id = meta.pop("project_id", None) or data.get("project_id")
-        created_by = meta.pop("created_by", None) or data.get("created_by")
-
         with get_connection() as conn:
             row = conn.execute(
                 "SELECT id FROM jobs WHERE id = %s::uuid",
@@ -26,10 +23,8 @@ class PostgresJobStore(JobStore):
             if row is None:
                 conn.execute(
                     """
-                    INSERT INTO jobs (
-                        id, job_type, status, result, meta, project_id, created_by, updated_at
-                    )
-                    VALUES (%s::uuid, %s, %s, %s::jsonb, %s::jsonb, %s::uuid, %s::uuid, %s)
+                    INSERT INTO jobs (id, job_type, status, result, meta, updated_at)
+                    VALUES (%s::uuid, %s, %s, %s::jsonb, %s::jsonb, %s)
                     """,
                     (
                         job_id,
@@ -37,8 +32,6 @@ class PostgresJobStore(JobStore):
                         status,
                         json.dumps(result) if result is not None else None,
                         json.dumps(meta),
-                        project_id,
-                        created_by,
                         now,
                     ),
                 )
@@ -49,8 +42,6 @@ class PostgresJobStore(JobStore):
                     SET status = %s,
                         result = COALESCE(%s::jsonb, result),
                         meta = COALESCE(meta, '{}'::jsonb) || %s::jsonb,
-                        project_id = COALESCE(%s::uuid, project_id),
-                        created_by = COALESCE(%s::uuid, created_by),
                         updated_at = %s
                     WHERE id = %s::uuid
                     """,
@@ -58,8 +49,6 @@ class PostgresJobStore(JobStore):
                         status,
                         json.dumps(result) if result is not None else None,
                         json.dumps(meta),
-                        project_id,
-                        created_by,
                         now,
                         job_id,
                     ),
@@ -77,8 +66,7 @@ class PostgresJobStore(JobStore):
         with get_connection() as conn:
             row = conn.execute(
                 """
-                SELECT job_type, status, result, meta, project_id, created_by,
-                       created_at, updated_at
+                SELECT job_type, status, result, meta, created_at, updated_at
                 FROM jobs WHERE id = %s::uuid
                 """,
                 (job_id,),
@@ -96,12 +84,6 @@ class PostgresJobStore(JobStore):
             "status": row["status"],
             "created_at": row["created_at"].isoformat() if row["created_at"] else None,
             "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
-            "project_id": (
-                str(row["project_id"]) if row.get("project_id") is not None else None
-            ),
-            "created_by": (
-                str(row["created_by"]) if row.get("created_by") is not None else None
-            ),
             **meta,
         }
         if result is not None:
@@ -128,7 +110,6 @@ class PostgresJobStore(JobStore):
         offset: int = 0,
         status: str | None = None,
         job_type: str | None = None,
-        project_ids: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         clauses = []
         params: list[Any] = []
@@ -138,17 +119,10 @@ class PostgresJobStore(JobStore):
         if job_type:
             clauses.append("job_type = %s")
             params.append(job_type)
-        if project_ids is not None:
-            if not project_ids:
-                return []
-            placeholders = ", ".join(["%s::uuid"] * len(project_ids))
-            clauses.append(f"project_id IN ({placeholders})")
-            params.extend(project_ids)
         where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         params.extend([limit, offset])
         query = f"""
-            SELECT id, job_type, status, result, meta, project_id, created_by,
-                   created_at, updated_at
+            SELECT id, job_type, status, result, meta, created_at, updated_at
             FROM jobs
             {where}
             ORDER BY updated_at DESC
@@ -169,22 +143,8 @@ class PostgresJobStore(JobStore):
                 "job_id": str(row["id"]),
                 "job_type": row["job_type"],
                 "status": row["status"],
-                "project_id": (
-                    str(row["project_id"])
-                    if row.get("project_id") is not None
-                    else None
-                ),
-                "created_by": (
-                    str(row["created_by"])
-                    if row.get("created_by") is not None
-                    else None
-                ),
-                "created_at": (
-                    row["created_at"].isoformat() if row["created_at"] else None
-                ),
-                "updated_at": (
-                    row["updated_at"].isoformat() if row["updated_at"] else None
-                ),
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
                 **meta,
             }
             if result is not None:
@@ -212,9 +172,9 @@ class PostgresJobStore(JobStore):
                 {
                     "status": row["status"],
                     "meta": meta,
-                    "created_at": (
-                        row["created_at"].isoformat() if row["created_at"] else None
-                    ),
+                    "created_at": row["created_at"].isoformat()
+                    if row["created_at"]
+                    else None,
                 }
             )
         return events

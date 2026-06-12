@@ -11,8 +11,7 @@ class SatelliteBrowserScreen extends StatelessWidget {
     final api = TerraforgeApi();
     return BackendActionScreen(
       title: 'Satellite Browser',
-      description:
-          'Browse available satellite scenes from GET /satellite/scenes.',
+      description: 'Browse available satellite scenes from GET /satellite/scenes.',
       actionLabel: 'Load Scenes',
       onAction: api.satelliteScenes,
     );

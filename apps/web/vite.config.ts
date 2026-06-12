@@ -1,29 +1,107 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+const API_TARGET = process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000';
+const cesiumSource = 'node_modules/cesium/Build/Cesium';
+const cesiumBaseUrl = 'cesiumStatic';
+
+/** SPA paths that must not be forwarded to the FastAPI backend on hard refresh. */
+const SPA_ROUTE_PATHS = new Set([
+  '/',
+  '/login',
+  '/map',
+  '/projects',
+  '/upload',
+  '/labeling',
+  '/copilot',
+  '/targeting',
+  '/kriging',
+  '/deposit',
+  '/hydrogeology',
+  '/urban',
+  '/infrastructure',
+  '/satellite',
+  '/reports',
+  '/financial',
+  '/marketplace',
+  '/digital-twin',
+  '/ar',
+  '/cloud-gpu',
+  '/model-training',
+  '/settings',
+  '/admin',
+  '/platform',
+]);
+
+function spaAwareProxy(context: string) {
+  return {
+    target: API_TARGET,
+    changeOrigin: true,
+    bypass(req: { url?: string }) {
+      const pathname = (req.url || '').split('?')[0];
+      if (SPA_ROUTE_PATHS.has(pathname)) {
+        return '/index.html';
+      }
+      // `/hydro` must not swallow the `/hydrogeology` page route.
+      if (context === '/hydro' && pathname.startsWith('/hydrogeology')) {
+        return '/index.html';
+      }
+      return undefined;
+    },
+  };
+}
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    viteStaticCopy({
+      targets: [
+        { src: `${cesiumSource}/ThirdParty`, dest: cesiumBaseUrl },
+        { src: `${cesiumSource}/Workers`, dest: cesiumBaseUrl },
+        { src: `${cesiumSource}/Assets`, dest: cesiumBaseUrl },
+        { src: `${cesiumSource}/Widgets`, dest: cesiumBaseUrl },
+      ],
+    }),
+  ],
+  define: {
+    CESIUM_BASE_URL: JSON.stringify(`/${cesiumBaseUrl}`),
+  },
+  optimizeDeps: {
+    exclude: ['cesium'],
+  },
   server: {
     port: 5173,
     proxy: {
-      '/health': 'http://localhost:8000',
-      '/version': 'http://localhost:8000',
-      '/instruments': 'http://localhost:8000',
-      '/jobs': 'http://localhost:8000',
-      '/reports': 'http://localhost:8000',
-      '/fuse-geodata': 'http://localhost:8000',
-      '/fuse-spectral': 'http://localhost:8000',
-      '/fuse-seismic': 'http://localhost:8000',
-      '/classify-thin-section': 'http://localhost:8000',
-      '/marketplace': 'http://localhost:8000',
-      '/mapping': 'http://localhost:8000',
-      '/tiles': 'http://localhost:8000',
-      '/hydro': 'http://localhost:8000',
-      '/urban': 'http://localhost:8000',
-      '/infra': 'http://localhost:8000',
-      '/satellite': 'http://localhost:8000',
-      '/geobotany': 'http://localhost:8000',
-      '/classification': 'http://localhost:8000',
+      '/health': API_TARGET,
+      '/version': API_TARGET,
+      '/auth': API_TARGET,
+      '/projects': spaAwareProxy('/projects'),
+      '/platform': spaAwareProxy('/platform'),
+      '/dashboard': API_TARGET,
+      '/deposit': spaAwareProxy('/deposit'),
+      '/deposit-model': API_TARGET,
+      '/financial': spaAwareProxy('/financial'),
+      '/training': API_TARGET,
+      '/copilot': spaAwareProxy('/copilot'),
+      '/capture': API_TARGET,
+      '/ingest': API_TARGET,
+      '/instruments': API_TARGET,
+      '/jobs': API_TARGET,
+      '/reports': spaAwareProxy('/reports'),
+      '/fuse-geodata': API_TARGET,
+      '/fuse-spectral': API_TARGET,
+      '/fuse-seismic': API_TARGET,
+      '/classify-thin-section': API_TARGET,
+      '/marketplace': spaAwareProxy('/marketplace'),
+      '/mapping': API_TARGET,
+      '/tiles': API_TARGET,
+      '/hydro': spaAwareProxy('/hydro'),
+      '/urban': spaAwareProxy('/urban'),
+      '/infra': API_TARGET,
+      '/satellite': spaAwareProxy('/satellite'),
+      '/geobotany': API_TARGET,
+      '/classification': API_TARGET,
     },
   },
 });

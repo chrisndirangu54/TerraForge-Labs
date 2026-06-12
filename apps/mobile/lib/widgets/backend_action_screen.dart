@@ -66,7 +66,7 @@ class _BackendActionScreenState extends State<BackendActionScreen> {
           if (_result != null) ...[
             const SizedBox(height: 16),
             SelectableText(
-              JsonEncoder.withIndent('  ').convert(_result),
+              const JsonEncoder.withIndent('  ').convert(_result),
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
             ),
           ],

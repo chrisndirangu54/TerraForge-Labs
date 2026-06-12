@@ -53,11 +53,7 @@ def test_gpu_classifier_uses_production_registry_version():
 def test_models_api_lists_versions():
     client.post(
         "/auth/register",
-        json={
-            "email": "ml@example.com",
-            "password": "securepass1",
-            "role": "geologist",
-        },
+        json={"email": "ml@example.com", "password": "securepass1", "role": "geologist"},
     )
     login = client.post(
         "/auth/login",

@@ -12,6 +12,19 @@ import { KrigingPage } from './pages/KrigingPage';
 import { LabelingPage } from './pages/LabelingPage';
 import { CopilotPage } from './pages/CopilotPage';
 import { TargetingPage } from './pages/TargetingPage';
+import { FinancialAnalysisPage } from './pages/FinancialAnalysisPage';
+import { ModelTrainingPage } from './pages/ModelTrainingPage';
+import { DepositPage } from './pages/DepositPage';
+import { HydrogeologyPage } from './pages/HydrogeologyPage';
+import { UrbanPage } from './pages/UrbanPage';
+import { InfrastructurePage } from './pages/InfrastructurePage';
+import { SatellitePage } from './pages/SatellitePage';
+import { MarketplacePage } from './pages/MarketplacePage';
+import { DigitalTwinPage } from './pages/DigitalTwinPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { AdminPage } from './pages/AdminPage';
+import { ARPage } from './pages/ARPage';
+import { PlatformHubPage } from './pages/PlatformHubPage';
 import { phase4Routes } from './routes';
 
 const missionControlPages: Record<string, JSX.Element> = {
@@ -22,6 +35,19 @@ const missionControlPages: Record<string, JSX.Element> = {
   '/labeling': <LabelingPage />,
   '/copilot': <CopilotPage />,
   '/targeting': <TargetingPage />,
+  '/financial': <FinancialAnalysisPage />,
+  '/model-training': <ModelTrainingPage />,
+  '/deposit': <DepositPage />,
+  '/hydrogeology': <HydrogeologyPage />,
+  '/urban': <UrbanPage />,
+  '/infrastructure': <InfrastructurePage />,
+  '/satellite': <SatellitePage />,
+  '/marketplace': <MarketplacePage />,
+  '/digital-twin': <DigitalTwinPage />,
+  '/settings': <SettingsPage />,
+  '/admin': <AdminPage />,
+  '/ar': <ARPage />,
+  '/platform': <PlatformHubPage />,
 };
 
 export function App() {

@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TerraforgeApi _api = TerraforgeApi();
-  final _emailController = TextEditingController(text: 'geo@example.com');
+  final _emailController = TextEditingController(text: 'geo@terraforge.test');
   final _passwordController = TextEditingController(text: 'securepass1');
   bool _checking = false;
   String? _status;

@@ -4,6 +4,6 @@ import 'package:terraforge_mobile/main.dart';
 void main() {
   testWidgets('app boots to login route', (tester) async {
     await tester.pumpWidget(const TerraforgeApp());
-    expect(find.text('Terraforge Login'), findsOneWidget);
+    expect(find.text('Terraforge Labs'), findsOneWidget);
   });
 }

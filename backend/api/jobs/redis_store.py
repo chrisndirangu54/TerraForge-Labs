@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 import redis
@@ -49,14 +50,9 @@ class RedisJobStore(JobStore):
         offset: int = 0,
         status: str | None = None,
         job_type: str | None = None,
-        project_ids: list[str] | None = None,
     ) -> list[dict[str, Any]]:
         return self._postgres.list_jobs(
-            limit=limit,
-            offset=offset,
-            status=status,
-            job_type=job_type,
-            project_ids=project_ids,
+            limit=limit, offset=offset, status=status, job_type=job_type
         )
 
     def get_events(self, job_id: str) -> list[dict[str, Any]]:

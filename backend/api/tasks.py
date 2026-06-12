@@ -63,27 +63,6 @@ def generate_jorc_report(job_id: str, payload: dict) -> dict:
     return result
 
 
-def retrain_geobotany_model(job_id: str, payload: dict) -> dict:
-    from models.geobotany_classifier.evaluate import evaluate_geobotany_classifier
-    from models.geobotany_classifier.train import train_geobotany_classifier
-
-    _set(job_id, "geobotany_retrain", status="running")
-    train_result = train_geobotany_classifier(
-        epochs=int(payload.get("epochs", 5)),
-        samples_per_class=int(payload.get("samples_per_class", 24)),
-    )
-    eval_result = evaluate_geobotany_classifier(
-        checkpoint_path=train_result["checkpoint_path"]
-    )
-    result = {
-        "train": train_result,
-        "evaluation": eval_result,
-        "promoted": bool(eval_result.get("meets_threshold")),
-    }
-    _set(job_id, "geobotany_retrain", status="complete", result=result)
-    return result
-
-
 def run_gpu_classification(job_id: str, payload: dict) -> dict:
     task = payload.get("task", "mineral")
     _set(job_id, "gpu_classification", status="running", task=task, accelerator="gpu")
@@ -104,21 +83,29 @@ def run_gpu_classification(job_id: str, payload: dict) -> dict:
     return result
 
 
-def _wrap_celery_task(name: str, job_type: str, runner):
+def _wrap_celery_task(name: str, runner):
     if celery_app is None:
         return None
 
-    max_retries = 1
-
-    @celery_app.task(bind=True, name=name)
+    @celery_app.task(bind=True, name=name, max_retries=1)
     def _task(self, job_id: str, payload: dict) -> dict:
+        job_type = payload.get("_job_type") or name.split(".")[-1]
+        if job_type == "run_gpu_classification":
+            job_type = "gpu_classification"
+        elif job_type == "run_kriging":
+            job_type = "kriging"
+        elif job_type == "run_deposit_model":
+            job_type = "deposit_model"
+        elif job_type == "generate_jorc_report":
+            job_type = "jorc_report"
+
         last_exc: Exception | None = None
-        for attempt in range(max_retries + 1):
+        for attempt in range(self.max_retries + 1):
             try:
                 return runner(job_id, payload)
             except Exception as exc:
                 last_exc = exc
-                if attempt < max_retries:
+                if attempt < self.max_retries:
                     continue
                 _mark_dead_letter(
                     job_id,
@@ -134,16 +121,65 @@ def _wrap_celery_task(name: str, job_type: str, runner):
     return _task
 
 
-celery_run_kriging = _wrap_celery_task("terraforge.run_kriging", "kriging", run_kriging)
+celery_run_kriging = _wrap_celery_task("terraforge.run_kriging", run_kriging)
 celery_run_deposit_model = _wrap_celery_task(
-    "terraforge.run_deposit_model", "deposit_model", run_deposit_model
+    "terraforge.run_deposit_model", run_deposit_model
 )
 celery_generate_jorc_report = _wrap_celery_task(
-    "terraforge.generate_jorc_report", "jorc_report", generate_jorc_report
+    "terraforge.generate_jorc_report", generate_jorc_report
 )
 celery_gpu_classification = _wrap_celery_task(
-    "terraforge.run_gpu_classification", "gpu_classification", run_gpu_classification
+    "terraforge.run_gpu_classification", run_gpu_classification
 )
-celery_retrain_geobotany_model = _wrap_celery_task(
-    "terraforge.retrain_geobotany_model", "geobotany_retrain", retrain_geobotany_model
-)
+
+
+def pull_datasets(job_id: str, payload: dict) -> dict:
+    from backend.api.services.dataset_pull import pull_all_datasets
+
+    _set(job_id, "dataset_pull", status="running")
+    result = pull_all_datasets(include_gbif=bool(payload.get("include_gbif", True)))
+    _set(job_id, "dataset_pull", status="complete", result=result)
+    return result
+
+
+def train_mineral(job_id: str, payload: dict) -> dict:
+    from models.mineral_classifier.evaluate import evaluate_mineral_classifier
+    from models.mineral_classifier.train import train_mineral_classifier
+
+    _set(job_id, "mineral_train", status="running")
+    checkpoint = payload.get("checkpoint_path")
+    train_result = train_mineral_classifier(
+        epochs=int(payload.get("epochs", 5)),
+        samples_per_class=int(payload.get("samples_per_class", 20)),
+        checkpoint_path=checkpoint,
+        data_source=str(payload.get("data_source", "synthetic")),
+    )
+    eval_result = evaluate_mineral_classifier(
+        checkpoint_path=train_result["checkpoint_path"],
+        seed=int(payload.get("seed", 77)),
+    )
+    result = {"train": train_result, "evaluation": eval_result}
+    _set(job_id, "mineral_train", status="complete", result=result)
+    return result
+
+
+def train_geobotany(job_id: str, payload: dict) -> dict:
+    from models.geobotany_classifier.evaluate import evaluate_geobotany_classifier
+    from models.geobotany_classifier.train import train_geobotany_classifier
+
+    _set(job_id, "geobotany_train", status="running")
+    train_result = train_geobotany_classifier(
+        epochs=int(payload.get("epochs", 5)),
+        data_source=str(payload.get("data_source", "synthetic")),
+    )
+    eval_result = evaluate_geobotany_classifier(
+        checkpoint_path=train_result["checkpoint_path"]
+    )
+    result = {"train": train_result, "evaluation": eval_result}
+    _set(job_id, "geobotany_train", status="complete", result=result)
+    return result
+
+
+celery_pull_datasets = _wrap_celery_task("terraforge.pull_datasets", pull_datasets)
+celery_train_mineral = _wrap_celery_task("terraforge.train_mineral", train_mineral)
+celery_train_geobotany = _wrap_celery_task("terraforge.train_geobotany", train_geobotany)

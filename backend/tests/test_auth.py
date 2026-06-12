@@ -14,7 +14,7 @@ def test_register_and_login():
     register = client.post(
         "/auth/register",
         json={
-            "email": "geo@example.com",
+            "email": "geo@terraforge.test",
             "password": "securepass1",
             "display_name": "Geo User",
             "role": "geologist",
@@ -22,12 +22,12 @@ def test_register_and_login():
     )
     assert register.status_code == 200
     body = register.json()
-    assert body["email"] == "geo@example.com"
+    assert body["email"] == "geo@terraforge.test"
     assert body["role"] == "geologist"
 
     login = client.post(
         "/auth/login",
-        json={"email": "geo@example.com", "password": "securepass1"},
+        json={"email": "geo@terraforge.test", "password": "securepass1"},
     )
     assert login.status_code == 200
     token_body = login.json()
@@ -39,21 +39,21 @@ def test_register_and_login():
         headers={"Authorization": f"Bearer {token_body['access_token']}"},
     )
     assert me.status_code == 200
-    assert me.json()["email"] == "geo@example.com"
+    assert me.json()["email"] == "geo@terraforge.test"
 
 
 def test_create_project_with_auth():
-    client.post(
+    register = client.post(
         "/auth/register",
         json={
-            "email": "admin@example.com",
+            "email": "admin@terraforge.test",
             "password": "securepass1",
             "role": "admin",
         },
     )
     login = client.post(
         "/auth/login",
-        json={"email": "admin@example.com", "password": "securepass1"},
+        json={"email": "admin@terraforge.test", "password": "securepass1"},
     )
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}

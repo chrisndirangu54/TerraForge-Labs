@@ -93,7 +93,9 @@ class MemoryObjectStorage(ObjectStorage):
         token = hashlib.sha256(f"{key}:{expires_at.isoformat()}".encode()).hexdigest()[
             :16
         ]
-        return f"memory://terraforge/{key}?expires={int(expires_at.timestamp())}&sig={token}"
+        return (
+            f"memory://terraforge/{key}?expires={int(expires_at.timestamp())}&sig={token}"
+        )
 
     def get_public_url(self, key: str) -> str:
         bucket = os.getenv("MINIO_BUCKET", "terraforge")
@@ -191,9 +193,7 @@ class MinioObjectStorage(ObjectStorage):
 
     def list_keys(self, prefix: str = "") -> list[str]:
         keys: list[str] = []
-        for obj in self._client.list_objects(
-            self._bucket, prefix=prefix, recursive=True
-        ):
+        for obj in self._client.list_objects(self._bucket, prefix=prefix, recursive=True):
             keys.append(obj.object_name)
         return sorted(keys)
 
