@@ -1,0 +1,5 @@
+[phases.install]
+cmds = [
+  "poetry lock",
+  "poetry install --no-interaction --no-ansi --only main --no-root"
+]
