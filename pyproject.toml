@@ -30,6 +30,8 @@ email-validator = "^2.2"
 python-dotenv = "^1.0"
 minio = "^7.2"
 pykrige = "^1.7.2"
+rasterio = "^1.3.10"
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
