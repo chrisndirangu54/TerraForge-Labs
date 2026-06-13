@@ -1,3 +1,5 @@
+import os
+
 SECRET_KEY = "phase0-insecure-placeholder"
 DEBUG = True
 ALLOWED_HOSTS = ["*"]
@@ -24,17 +26,23 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "APP_DIRS": True,
-        "OPTIONS": {"context_processors": []},
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ]
+        },
     }
 ]
 DATABASES = {
     "default": {
         "ENGINE": "django.contrib.gis.db.backends.postgis",
-        "NAME": "terraforge",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "db",
-        "PORT": "5432",
+        "NAME": os.environ.get("PGDATABASE", "terraforge"),
+        "USER": os.environ.get("PGUSER", "postgres"),
+        "PASSWORD": os.environ.get("PGPASSWORD", "postgres"),
+        "HOST": os.environ.get("PGHOST", "localhost"),
+        "PORT": os.environ.get("PGPORT", "5432"),
     }
 }
 STATIC_URL = "static/"
