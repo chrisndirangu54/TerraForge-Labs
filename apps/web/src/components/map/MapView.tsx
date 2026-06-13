@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import type { CircleLayerSpecification } from '@maplibre/maplibre-gl-style-spec';
+import type { FeatureCollection, Feature, Geometry } from 'geojson';
 
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
@@ -19,14 +21,8 @@ export type MapOverlay = {
   storage_key?: string | null;
 };
 
-export type FeatureLayerCollection = {
-  type: 'FeatureCollection';
-  features: Array<{
-    type: 'Feature';
-    geometry: { type: string; coordinates: number[] | number[][] };
-    properties?: Record<string, unknown>;
-  }>;
-};
+// Use the real GeoJSON types — coordinates depth is handled by the geojson package
+export type FeatureLayerCollection = FeatureCollection<Geometry, Record<string, unknown>>;
 
 type MapViewProps = {
   layerGroups: LayerGroup;
@@ -41,8 +37,7 @@ const DEFAULT_CENTER: [number, number] = [37.5, -1.15];
 
 const MAP_STYLES: Record<string, string> = {
   '2d_street': 'https://demotiles.maplibre.org/style.json',
-  '2d_satellite':
-    'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key',
+  '2d_satellite': 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key',
   '2d_hybrid': 'https://demotiles.maplibre.org/style.json',
   '3d_terrain': 'https://demotiles.maplibre.org/style.json',
   '3d_geological': 'https://demotiles.maplibre.org/style.json',
@@ -78,7 +73,7 @@ function styleForMode(mapMode: string): string | maplibregl.StyleSpecification {
   return MAP_STYLES[mapMode] ?? MAP_STYLES['2d_satellite'];
 }
 
-function layerPaint(layerId: string): Record<string, unknown> {
+function layerPaint(layerId: string): CircleLayerSpecification['paint'] {
   if (layerId.includes('borehole')) {
     return {
       'circle-radius': 7,
@@ -111,6 +106,36 @@ function layerPaint(layerId: string): Record<string, unknown> {
     'circle-stroke-width': 1,
     'circle-stroke-color': '#ffffff',
   };
+}
+
+/**
+ * Normalise whatever the backend sends into a valid GeoJSON FeatureCollection.
+ * Handles: already-valid collections, single Features, and malformed payloads.
+ */
+function toFeatureCollection(data: unknown): FeatureCollection {
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+
+    if (obj.type === 'FeatureCollection' && Array.isArray(obj.features)) {
+      // Filter out any features with null/undefined geometry so MapLibre never
+      // receives something it can't validate.
+      const clean: Feature[] = (obj.features as unknown[]).filter(
+        (f): f is Feature =>
+          f !== null &&
+          typeof f === 'object' &&
+          (f as Record<string, unknown>).type === 'Feature' &&
+          (f as Record<string, unknown>).geometry != null,
+      );
+      return { type: 'FeatureCollection', features: clean };
+    }
+
+    if (obj.type === 'Feature' && obj.geometry != null) {
+      return { type: 'FeatureCollection', features: [data as Feature] };
+    }
+  }
+
+  console.warn('[MapView] Invalid GeoJSON payload — using empty FeatureCollection', data);
+  return { type: 'FeatureCollection', features: [] };
 }
 
 export function MapView({
@@ -152,6 +177,8 @@ export function MapView({
     setActiveOverlays(initial);
   }, [overlays]);
 
+  // ── Map initialisation ──────────────────────────────────────────────────────
+  // Re-creates the map instance whenever mapMode or center changes.
   useEffect(() => {
     if (!containerRef.current) return undefined;
 
@@ -185,39 +212,37 @@ export function MapView({
     };
   }, [mapMode, center[0], center[1], zoom]);
 
+  // ── Feature layer installation ──────────────────────────────────────────────
+  // `mapReady` guarantees the style is fully loaded before we touch sources,
+  // so we no longer need the isStyleLoaded / map.once fallback (which created
+  // stale-closure bugs when featureLayers changed before the map finished loading).
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
 
-    const installLayers = () => {
-      Object.entries(featureLayers).forEach(([layerId, collection]) => {
-        const sourceId = `source-${layerId}`;
-        const circleLayerId = `layer-${layerId}-points`;
+    Object.entries(featureLayers).forEach(([layerId, collection]) => {
+      const sourceId = `source-${layerId}`;
+      const circleLayerId = `layer-${layerId}-points`;
 
-        if (map.getLayer(circleLayerId)) map.removeLayer(circleLayerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      // Tear down existing source/layer pair before re-adding.
+      if (map.getLayer(circleLayerId)) map.removeLayer(circleLayerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
 
-        map.addSource(sourceId, {
-          type: 'geojson',
-          data: collection as GeoJSON.FeatureCollection,
-        });
-        map.addLayer({
-          id: circleLayerId,
-          type: 'circle',
-          source: sourceId,
-          layout: { visibility: visibleLayers[layerId] ? 'visible' : 'none' },
-          paint: layerPaint(layerId),
-        });
+      // Normalise and validate — this is what was causing "not a valid GeoJSON object".
+      const data = toFeatureCollection(collection);
+
+      map.addSource(sourceId, { type: 'geojson', data });
+      map.addLayer({
+        id: circleLayerId,
+        type: 'circle',
+        source: sourceId,
+        layout: { visibility: visibleLayers[layerId] ? 'visible' : 'none' },
+        paint: layerPaint(layerId),
       });
-    };
-
-    if (map.isStyleLoaded()) {
-      installLayers();
-    } else {
-      map.once('load', installLayers);
-    }
+    });
   }, [featureLayers, mapReady, visibleLayers]);
 
+  // ── Visibility toggling ─────────────────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;
@@ -233,6 +258,7 @@ export function MapView({
     });
   }, [visibleLayers, featureLayers, mapReady]);
 
+  // ── Raster overlay management ───────────────────────────────────────────────
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapReady) return;

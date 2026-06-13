@@ -77,11 +77,26 @@ export default defineConfig({
         find: /^mersenne-twister$/,
         replacement: path.resolve(rootDir, 'src/shims/mersenne-twister.ts'),
       },
+      // Redirect the bare ESM import of urijs to its CJS build so Vite's
+      // esbuild pre-bundler can wrap it as a proper ESM default export.
+      {
+        find: /^urijs$/i,
+        replacement: 'urijs/src/URI.js',
+      },
     ],
   },
   optimizeDeps: {
-    exclude: ['cesium'],
-    needsInterop: ['mersenne-twister'],
+    // Do NOT exclude cesium — exclusion prevents esbuild from resolving its
+    // CJS transitive deps (urijs, mersenne-twister) and causes the
+    // "does not provide an export named 'default'" crash at runtime.
+    include: [
+      'cesium',
+      'urijs',
+    ],
+    needsInterop: [
+      'mersenne-twister',
+      'urijs',
+    ],
   },
   server: {
     port: 5173,
