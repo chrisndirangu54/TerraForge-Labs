@@ -1,0 +1,22 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    gdal-bin \
+    libgdal-dev \
+    libgeos-dev \
+    libproj-dev \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install poetry
+
+COPY pyproject.toml ./
+RUN poetry lock
+RUN poetry install --no-interaction --no-ansi --only main --no-root
+
+COPY . .
+
+CMD poetry run uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
