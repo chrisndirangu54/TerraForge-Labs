@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './layout/AppLayout';
 import { DashboardPage } from './pages/DashboardPage';
@@ -14,7 +15,9 @@ import { CopilotPage } from './pages/CopilotPage';
 import { TargetingPage } from './pages/TargetingPage';
 import { FinancialAnalysisPage } from './pages/FinancialAnalysisPage';
 import { ModelTrainingPage } from './pages/ModelTrainingPage';
-import { DepositPage } from './pages/DepositPage';
+const DepositPage = lazy(() =>
+  import('./pages/DepositPage').then((module) => ({ default: module.DepositPage })),
+);
 import { HydrogeologyPage } from './pages/HydrogeologyPage';
 import { UrbanPage } from './pages/UrbanPage';
 import { InfrastructurePage } from './pages/InfrastructurePage';
@@ -37,7 +40,11 @@ const missionControlPages: Record<string, JSX.Element> = {
   '/targeting': <TargetingPage />,
   '/financial': <FinancialAnalysisPage />,
   '/model-training': <ModelTrainingPage />,
-  '/deposit': <DepositPage />,
+  '/deposit': (
+    <Suspense fallback={<p className="text-sediment-muted">Loading deposit viewer…</p>}>
+      <DepositPage />
+    </Suspense>
+  ),
   '/hydrogeology': <HydrogeologyPage />,
   '/urban': <UrbanPage />,
   '/infrastructure': <InfrastructurePage />,

@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:8000';
+  import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '') ||
+  (import.meta.env.DEV ? '' : 'http://localhost:8000');
 
 export type LayerGroup = Record<string, string[]>;
 
@@ -11,15 +12,25 @@ export type MapOverlay = {
   id: string;
   type: string;
   title: string;
-  tile_url_template?: string;
-  preview_url?: string;
+  tile_url_template?: string | null;
+  preview_url?: string | null;
   opacity?: number;
   available?: boolean;
-  storage_key?: string;
+  storage_key?: string | null;
+};
+
+export type FeatureLayerCollection = {
+  type: 'FeatureCollection';
+  features: Array<{
+    type: 'Feature';
+    geometry: { type: string; coordinates: number[] | number[][] };
+    properties?: Record<string, unknown>;
+  }>;
 };
 
 type MapViewProps = {
   layerGroups: LayerGroup;
+  featureLayers?: Record<string, FeatureLayerCollection>;
   mapMode?: string;
   overlays?: MapOverlay[];
   center?: [number, number];
@@ -28,8 +39,83 @@ type MapViewProps = {
 
 const DEFAULT_CENTER: [number, number] = [37.5, -1.15];
 
+const MAP_STYLES: Record<string, string> = {
+  '2d_street': 'https://demotiles.maplibre.org/style.json',
+  '2d_satellite':
+    'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key',
+  '2d_hybrid': 'https://demotiles.maplibre.org/style.json',
+  '3d_terrain': 'https://demotiles.maplibre.org/style.json',
+  '3d_geological': 'https://demotiles.maplibre.org/style.json',
+};
+
+function satelliteStyle(): maplibregl.StyleSpecification {
+  return {
+    version: 8,
+    sources: {
+      esri: {
+        type: 'raster',
+        tiles: [
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        attribution: 'Esri World Imagery',
+      },
+    },
+    layers: [
+      {
+        id: 'esri-satellite',
+        type: 'raster',
+        source: 'esri',
+      },
+    ],
+  };
+}
+
+function styleForMode(mapMode: string): string | maplibregl.StyleSpecification {
+  if (mapMode.includes('satellite') || mapMode === '2d_hybrid') {
+    return satelliteStyle();
+  }
+  return MAP_STYLES[mapMode] ?? MAP_STYLES['2d_satellite'];
+}
+
+function layerPaint(layerId: string): Record<string, unknown> {
+  if (layerId.includes('borehole')) {
+    return {
+      'circle-radius': 7,
+      'circle-color': '#2f8fd6',
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#fff',
+    };
+  }
+  if (layerId.includes('deposit')) {
+    return {
+      'circle-radius': 9,
+      'circle-color': '#c45c26',
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffe0c2',
+    };
+  }
+  return {
+    'circle-radius': 6,
+    'circle-color': [
+      'interpolate',
+      ['linear'],
+      ['coalesce', ['get', 'ta_ppm'], ['get', 'ta_ppm_mean'], 100],
+      50,
+      '#355c3a',
+      120,
+      '#c45c26',
+      220,
+      '#ffd27a',
+    ],
+    'circle-stroke-width': 1,
+    'circle-stroke-color': '#ffffff',
+  };
+}
+
 export function MapView({
   layerGroups,
+  featureLayers = {},
   mapMode = '2d_satellite',
   overlays = [],
   center = DEFAULT_CENTER,
@@ -40,86 +126,116 @@ export function MapView({
   const [visibleLayers, setVisibleLayers] = useState<Record<string, boolean>>({});
   const [activeOverlays, setActiveOverlays] = useState<Record<string, boolean>>({});
   const [mapError, setMapError] = useState<string | null>(null);
-  const [useCanvasFallback, setUseCanvasFallback] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
-  const allLayers = Object.entries(layerGroups).flatMap(([group, layers]) =>
-    layers.map((layer) => ({ group, layer, id: `${group}:${layer}` })),
+  const allLayers = useMemo(
+    () =>
+      Object.entries(layerGroups).flatMap(([group, layers]) =>
+        layers.map((layer) => ({ group, layer, id: `${group}:${layer}` })),
+      ),
+    [layerGroups],
   );
 
   useEffect(() => {
     const initial: Record<string, boolean> = {};
     allLayers.forEach(({ id }) => {
-      initial[id] = false;
+      initial[id] = Boolean(featureLayers[id]);
     });
     setVisibleLayers(initial);
-  }, [JSON.stringify(layerGroups)]);
+  }, [allLayers, featureLayers]);
 
   useEffect(() => {
     const initial: Record<string, boolean> = {};
     overlays.forEach((overlay) => {
-      initial[overlay.id] = false;
+      initial[overlay.id] = Boolean(overlay.available);
     });
     setActiveOverlays(initial);
-  }, [JSON.stringify(overlays)]);
+  }, [overlays]);
 
   useEffect(() => {
-    if (!containerRef.current || useCanvasFallback) return undefined;
+    if (!containerRef.current) return undefined;
 
-    let map: maplibregl.Map;
-    try {
-      map = new maplibregl.Map({
-        container: containerRef.current,
-        style: 'https://demotiles.maplibre.org/style.json',
-        center,
-        zoom,
-      });
-      map.addControl(new maplibregl.NavigationControl(), 'top-right');
-      mapRef.current = map;
-    } catch (err) {
-      setMapError(err instanceof Error ? err.message : String(err));
-      setUseCanvasFallback(true);
-      return undefined;
-    }
+    setMapReady(false);
+    setMapError(null);
 
-    map.on('load', () => {
-      map.addSource('terraforge-demo', {
-        type: 'geojson',
-        data: {
-          type: 'FeatureCollection',
-          features: [
-            {
-              type: 'Feature',
-              properties: { name: 'Exploration grid' },
-              geometry: {
-                type: 'Point',
-                coordinates: center,
-              },
-            },
-          ],
-        },
-      });
-      map.addLayer({
-        id: 'terraforge-demo-points',
-        type: 'circle',
-        source: 'terraforge-demo',
-        paint: {
-          'circle-radius': 8,
-          'circle-color': '#c45c26',
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#fff',
-        },
-      });
+    const style = styleForMode(mapMode);
+    const map = new maplibregl.Map({
+      container: containerRef.current,
+      style,
+      center,
+      zoom,
     });
+    map.addControl(new maplibregl.NavigationControl(), 'top-right');
+    mapRef.current = map;
+
+    const onLoad = () => setMapReady(true);
+    const onError = (event: { error?: Error }) => {
+      setMapError(event.error?.message ?? 'Map failed to load');
+    };
+
+    map.on('load', onLoad);
+    map.on('error', onError);
 
     return () => {
+      map.off('load', onLoad);
+      map.off('error', onError);
       map.remove();
       mapRef.current = null;
+      setMapReady(false);
     };
-  }, [useCanvasFallback, center[0], center[1], zoom]);
+  }, [mapMode, center[0], center[1], zoom]);
 
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || useCanvasFallback) return;
+    if (!map || !mapReady) return;
+
+    const installLayers = () => {
+      Object.entries(featureLayers).forEach(([layerId, collection]) => {
+        const sourceId = `source-${layerId}`;
+        const circleLayerId = `layer-${layerId}-points`;
+
+        if (map.getLayer(circleLayerId)) map.removeLayer(circleLayerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+
+        map.addSource(sourceId, {
+          type: 'geojson',
+          data: collection as GeoJSON.FeatureCollection,
+        });
+        map.addLayer({
+          id: circleLayerId,
+          type: 'circle',
+          source: sourceId,
+          layout: { visibility: visibleLayers[layerId] ? 'visible' : 'none' },
+          paint: layerPaint(layerId),
+        });
+      });
+    };
+
+    if (map.isStyleLoaded()) {
+      installLayers();
+    } else {
+      map.once('load', installLayers);
+    }
+  }, [featureLayers, mapReady, visibleLayers]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    Object.keys(featureLayers).forEach((layerId) => {
+      const circleLayerId = `layer-${layerId}-points`;
+      if (!map.getLayer(circleLayerId)) return;
+      map.setLayoutProperty(
+        circleLayerId,
+        'visibility',
+        visibleLayers[layerId] ? 'visible' : 'none',
+      );
+    });
+  }, [visibleLayers, featureLayers, mapReady]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
 
     overlays.forEach((overlay) => {
       const sourceId = `overlay-${overlay.id}`;
@@ -133,34 +249,25 @@ export function MapView({
       }
 
       const tileUrl = `${API_BASE_URL}${overlay.tile_url_template}`;
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+      if (map.getSource(sourceId)) map.removeSource(sourceId);
 
-      const attach = () => {
-        if (map.getSource(sourceId)) {
-          if (map.getLayer(layerId)) map.removeLayer(layerId);
-          map.removeSource(sourceId);
-        }
-        map.addSource(sourceId, {
-          type: 'raster',
-          tiles: [tileUrl],
-          tileSize: 256,
-        });
-        map.addLayer({
-          id: layerId,
-          type: 'raster',
-          source: sourceId,
-          paint: { 'raster-opacity': overlay.opacity ?? 0.65 },
-        });
-      };
-
-      if (map.isStyleLoaded()) {
-        attach();
-      } else {
-        map.once('load', attach);
-      }
+      map.addSource(sourceId, {
+        type: 'raster',
+        tiles: [tileUrl],
+        tileSize: 256,
+      });
+      map.addLayer({
+        id: layerId,
+        type: 'raster',
+        source: sourceId,
+        paint: { 'raster-opacity': overlay.opacity ?? 0.65 },
+      });
     });
-  }, [activeOverlays, overlays, useCanvasFallback]);
+  }, [activeOverlays, overlays, mapReady]);
 
   function toggleLayer(layerId: string) {
+    if (!featureLayers[layerId]) return;
     setVisibleLayers((prev) => ({ ...prev, [layerId]: !prev[layerId] }));
   }
 
@@ -168,64 +275,59 @@ export function MapView({
     setActiveOverlays((prev) => ({ ...prev, [overlayId]: !prev[overlayId] }));
   }
 
-  const activeCount = Object.values(visibleLayers).filter(Boolean).length;
+  const activeCount = Object.entries(visibleLayers).filter(
+    ([id, on]) => on && featureLayers[id],
+  ).length;
   const activeOverlayCount = Object.values(activeOverlays).filter(Boolean).length;
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1rem' }}>
-      <aside
-        style={{
-          border: '1px solid #ddd',
-          borderRadius: 6,
-          padding: '0.75rem',
-          maxHeight: 480,
-          overflowY: 'auto',
-        }}
-      >
-        <h3 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Layers</h3>
-        <p style={{ fontSize: '0.8rem', color: '#666', margin: '0 0 0.75rem' }}>
-          Mode: {mapMode} · {activeCount} vector · {activeOverlayCount} overlay
+    <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
+      <aside className="max-h-[520px] overflow-y-auto rounded-xl border border-forge-600/50 bg-forge-900/50 p-4">
+        <h3 className="font-display text-sm text-sediment">Layers</h3>
+        <p className="mt-1 font-mono text-[11px] text-sediment-dim">
+          {mapMode.replace(/_/g, ' ')} · {activeCount} vector · {activeOverlayCount} overlay
         </p>
+
         {overlays.length > 0 ? (
-          <div style={{ marginBottom: '0.75rem' }}>
-            <strong style={{ fontSize: '0.85rem' }}>Overlays</strong>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0.25rem 0 0' }}>
+          <div className="mt-4">
+            <p className="tf-label">Overlays</p>
+            <ul className="mt-2 space-y-1">
               {overlays.map((overlay) => (
-                <li key={overlay.id} style={{ marginBottom: '0.25rem' }}>
-                  <label style={{ fontSize: '0.8rem', cursor: 'pointer' }}>
+                <li key={overlay.id}>
+                  <label className="flex cursor-pointer items-center gap-2 text-xs text-sediment-muted">
                     <input
                       type="checkbox"
                       checked={activeOverlays[overlay.id] ?? false}
                       disabled={!overlay.tile_url_template}
                       onChange={() => toggleOverlay(overlay.id)}
-                      style={{ marginRight: '0.35rem' }}
                     />
                     {overlay.title}
-                    {!overlay.available ? ' (run kriging first)' : ''}
+                    {!overlay.available ? ' (run kriging)' : ''}
                   </label>
                 </li>
               ))}
             </ul>
           </div>
         ) : null}
+
         {Object.entries(layerGroups).map(([group, layers]) => (
-          <div key={group} style={{ marginBottom: '0.75rem' }}>
-            <strong style={{ fontSize: '0.85rem', textTransform: 'capitalize' }}>
-              {group.replace(/_/g, ' ')}
-            </strong>
-            <ul style={{ listStyle: 'none', padding: 0, margin: '0.25rem 0 0' }}>
+          <div key={group} className="mt-4">
+            <p className="tf-label capitalize">{group.replace(/_/g, ' ')}</p>
+            <ul className="mt-2 space-y-1">
               {layers.map((layer) => {
                 const id = `${group}:${layer}`;
+                const hasData = Boolean(featureLayers[id]);
                 return (
-                  <li key={id} style={{ marginBottom: '0.25rem' }}>
-                    <label style={{ fontSize: '0.8rem', cursor: 'pointer' }}>
+                  <li key={id}>
+                    <label className="flex cursor-pointer items-center gap-2 text-xs text-sediment-muted">
                       <input
                         type="checkbox"
                         checked={visibleLayers[id] ?? false}
+                        disabled={!hasData}
                         onChange={() => toggleLayer(id)}
-                        style={{ marginRight: '0.35rem' }}
                       />
                       {layer.replace(/_/g, ' ')}
+                      {!hasData ? ' (no data)' : ''}
                     </label>
                   </li>
                 );
@@ -235,40 +337,12 @@ export function MapView({
         ))}
       </aside>
 
-      <div style={{ position: 'relative', minHeight: 480 }}>
-        {useCanvasFallback ? (
-          <canvas
-            ref={(canvas) => {
-              if (!canvas) return;
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return;
-              canvas.width = canvas.offsetWidth;
-              canvas.height = 480;
-              const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-              gradient.addColorStop(0, '#1a3a2a');
-              gradient.addColorStop(1, '#2d5a3d');
-              ctx.fillStyle = gradient;
-              ctx.fillRect(0, 0, canvas.width, canvas.height);
-              ctx.fillStyle = '#c45c26';
-              ctx.beginPath();
-              ctx.arc(canvas.width / 2, canvas.height / 2, 12, 0, Math.PI * 2);
-              ctx.fill();
-              ctx.fillStyle = '#fff';
-              ctx.font = '14px sans-serif';
-              ctx.fillText('Canvas map fallback (MapLibre unavailable)', 16, 24);
-              ctx.fillText(`${activeCount} layers · ${activeOverlayCount} overlays`, 16, 44);
-            }}
-            style={{ width: '100%', height: 480, borderRadius: 6, border: '1px solid #ddd' }}
-          />
-        ) : (
-          <div
-            ref={containerRef}
-            style={{ width: '100%', height: 480, borderRadius: 6, border: '1px solid #ddd' }}
-          />
-        )}
-        {mapError ? (
-          <p style={{ fontSize: '0.8rem', color: '#a63', marginTop: '0.5rem' }}>{mapError}</p>
-        ) : null}
+      <div>
+        <div
+          ref={containerRef}
+          className="h-[480px] w-full overflow-hidden rounded-xl border border-forge-600/60 shadow-glow"
+        />
+        {mapError ? <p className="mt-2 text-sm text-red-400">{mapError}</p> : null}
       </div>
     </div>
   );

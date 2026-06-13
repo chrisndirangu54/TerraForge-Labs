@@ -25,6 +25,13 @@
     @apply min-h-screen;
   }
 
+  .deposit-cesium-viewer .cesium-viewer,
+  .deposit-cesium-viewer .cesium-widget,
+  .deposit-cesium-viewer .cesium-widget canvas {
+    width: 100%;
+    height: 100%;
+  }
+
   h1,
   h2,
   h3,

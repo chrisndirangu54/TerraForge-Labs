@@ -48,9 +48,13 @@ class _FinancialScreenState extends State<FinancialScreen> {
       final result = await _api.financialAnalyze({
         'commodity': 'ta',
         'ore_tonnes': 2500000,
-        'head_grade_ppm': 120,
-        'recovery_pct': 72,
-        'price_usd_per_kg': 280,
+        'grade': 120,
+        'recovery': 0.72,
+        'metal_price_usd': 280,
+        'capex_usd': 60000000,
+        'mine_life_years': 10,
+        'discount_rate': 0.12,
+        'run_monte_carlo': true,
       });
       setState(() {
         _result = result;

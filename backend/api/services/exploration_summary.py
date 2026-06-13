@@ -33,16 +33,53 @@ def _latest_block_model_csv() -> Path | None:
 
 
 def _deposit_artifact_urls(csv_path: Path | None) -> dict[str, str]:
+    from backend.api.services.storage import get_storage_service
+
     if csv_path is None:
         base = "deposit_model"
     else:
         base = csv_path.name.removesuffix("_block_model.csv")
-    return {
-        "mesh_url": f"minio://models/{base}.obj",
-        "block_model_url": f"minio://models/{base}_block_model.csv",
-        "probability_map_url": f"minio://models/{base}_probability.tif",
-        "tileset_url": f"minio://deposit-models/{base}/tileset.json",
+
+    storage = get_storage_service()
+    keys = {
+        "mesh_url": f"models/{base}.obj",
+        "block_model_url": f"models/{base}_block_model.csv",
+        "probability_map_url": f"models/{base}_probability.tif",
     }
+    resolved: dict[str, str] = {}
+    for field, key in keys.items():
+        if field == "mesh_url":
+            obj_path = _artifacts_dir() / f"{base}.obj"
+            if storage.exists(key) or obj_path.exists():
+                resolved[field] = f"/deposit/mesh?base={base}"
+            else:
+                resolved[field] = f"/deposit/mesh?base=deposit_model"
+            continue
+        if storage.exists(key):
+            resolved[field] = storage.get_signed_url(key)
+        else:
+            resolved[field] = f"minio://{key}"
+    resolved["tileset_url"] = f"minio://deposit-models/{base}/tileset.json"
+    return resolved
+
+
+def _default_blocks_preview(limit: int = 24) -> list[dict[str, Any]]:
+    from backend.processing.deposit_model import block_geo_coords, grade_color_hex
+
+    return [
+        {
+            "x": i % 5,
+            "y": i // 5,
+            "z": i % 5,
+            **block_geo_coords(i),
+            "ta_ppm_mean": round(110 + i * 2.5, 2),
+            "ta_ppm_p10": round(95 + i, 2),
+            "ta_ppm_p90": round(130 + i * 2, 2),
+            "unit": "pegmatite" if i % 2 == 0 else "saprolite",
+            "color_hex": grade_color_hex(110 + i * 2.5),
+        }
+        for i in range(min(limit, 20))
+    ]
 
 
 def load_blocks_preview(
@@ -52,34 +89,33 @@ def load_blocks_preview(
 ) -> list[dict[str, Any]]:
     csv_path = _block_model_csv_path(job_id=job_id)
     if csv_path is None:
-        return [
-            {
-                "x": i,
-                "y": i % 4,
-                "z": i % 5,
-                "ta_ppm_mean": 110 + i * 2,
-                "ta_ppm_p10": 95 + i,
-                "ta_ppm_p90": 130 + i * 2,
-                "unit": "pegmatite" if i % 2 == 0 else "saprolite",
-            }
-            for i in range(min(limit, 20))
-        ]
+        return _default_blocks_preview(limit)
 
     rows: list[dict[str, Any]] = []
     with open(csv_path, newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
-        for row in reader:
-            rows.append(
-                {
-                    "x": float(row.get("x", 0) or 0),
-                    "y": float(row.get("y", 0) or 0),
-                    "z": float(row.get("z", 0) or 0),
-                    "ta_ppm_mean": float(row.get("ta_ppm_mean", row.get("ta_ppm", 0)) or 0),
-                    "ta_ppm_p10": float(row.get("ta_ppm_p10", 0) or 0),
-                    "ta_ppm_p90": float(row.get("ta_ppm_p90", 0) or 0),
-                    "unit": row.get("unit", "unknown"),
-                }
-            )
+        for index, row in enumerate(reader):
+            from backend.processing.deposit_model import block_geo_coords, grade_color_hex
+
+            grade = float(row.get("ta_ppm_mean", row.get("ta_ppm", 0)) or 0)
+            geo = block_geo_coords(index)
+            parsed = {
+                "x": float(row.get("x", 0) or 0),
+                "y": float(row.get("y", 0) or 0),
+                "z": float(row.get("z", 0) or 0),
+                "lon": float(row.get("lon", geo["lon"]) or geo["lon"]),
+                "lat": float(row.get("lat", geo["lat"]) or geo["lat"]),
+                "elevation_m": float(
+                    row.get("elevation_m", geo["elevation_m"]) or geo["elevation_m"]
+                ),
+                "depth_m": float(row.get("depth_m", geo["depth_m"]) or geo["depth_m"]),
+                "ta_ppm_mean": grade,
+                "ta_ppm_p10": float(row.get("ta_ppm_p10", 0) or 0),
+                "ta_ppm_p90": float(row.get("ta_ppm_p90", 0) or 0),
+                "unit": row.get("unit", "unknown"),
+                "color_hex": row.get("color_hex") or grade_color_hex(grade),
+            }
+            rows.append(parsed)
             if len(rows) >= limit:
                 break
     return rows
@@ -106,7 +142,7 @@ def load_deposit_summary() -> dict[str, Any]:
             "source": "default",
             "estimated_deposit_volume_m3": 25_000,
             "mean_grade_ta_ppm": 132,
-            "block_count": 0,
+            "block_count": 20,
             "ore_tonnes_estimate": 3_000_000,
         }
 

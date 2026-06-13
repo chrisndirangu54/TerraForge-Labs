@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Cartesian3, Viewer } from 'cesium';
 import { apiGet, apiPost } from '../api/client';
+import { DepositCesiumViewer, type DepositBlock } from '../components/geology/DepositCesiumViewer';
 import { JobStatusPanel } from '../components/capture/JobStatusPanel';
 import { DataTable } from '../components/capture/DataTable';
 import { StructuredJsonView } from '../components/results/StructuredJsonView';
@@ -11,83 +11,124 @@ import { PageHeader } from '../components/ui/PageHeader';
 import { StatCard } from '../components/ui/StatCard';
 import { useProjectStore } from '../stores/projectStore';
 
+type DepositSummary = {
+  ore_tonnes_estimate?: number;
+  mean_grade_ta_ppm?: number;
+  block_count?: number;
+  blocks_preview?: DepositBlock[];
+  centre?: { lon: number; lat: number; elevation_m?: number };
+  mesh_url?: string;
+  source?: string;
+  [key: string]: unknown;
+};
+
+function extractBlocks(job: Record<string, unknown> | null): DepositBlock[] | null {
+  if (!job) return null;
+  const result = job.result;
+  if (result && typeof result === 'object' && Array.isArray((result as DepositSummary).blocks_preview)) {
+    return (result as DepositSummary).blocks_preview as DepositBlock[];
+  }
+  if (Array.isArray(job.blocks_preview)) {
+    return job.blocks_preview as DepositBlock[];
+  }
+  return null;
+}
+
+async function pollJob(jobId: string, attempts = 20): Promise<Record<string, unknown>> {
+  for (let i = 0; i < attempts; i += 1) {
+    const job = await apiGet<Record<string, unknown>>(`/jobs/${jobId}`);
+    const status = String(job.status ?? '');
+    if (status === 'complete' || status === 'failed') {
+      return job;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return apiGet<Record<string, unknown>>(`/jobs/${jobId}`);
+}
+
 export function DepositPage() {
   const selectedProject = useProjectStore((s) => s.getSelectedProject());
-  const cesiumRef = useRef<HTMLDivElement>(null);
-  const viewerRef = useRef<Viewer | null>(null);
-  const [summary, setSummary] = useState<Record<string, unknown> | null>(null);
+  const [summary, setSummary] = useState<DepositSummary | null>(null);
   const [job, setJob] = useState<Record<string, unknown> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+
+  async function refreshSummary() {
+    const params = selectedProject?.id ? { project_id: selectedProject.id } : undefined;
+    const refreshed = await apiGet<DepositSummary>('/deposit/summary', params);
+    setSummary(refreshed);
+    return refreshed;
+  }
 
   useEffect(() => {
-    apiGet<Record<string, unknown>>('/deposit/summary')
-      .then(setSummary)
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)));
-  }, []);
-
-  useEffect(() => {
-    if (!cesiumRef.current || viewerRef.current) return undefined;
-    try {
-      const viewer = new Viewer(cesiumRef.current, {
-        animation: false,
-        timeline: false,
-        baseLayerPicker: false,
-        geocoder: false,
-        homeButton: false,
-        sceneModePicker: false,
-        navigationHelpButton: false,
-      });
-      viewer.camera.setView({
-        destination: Cartesian3.fromDegrees(37.5, -1.15, 25000),
-      });
-      viewerRef.current = viewer;
-    } catch {
-      // Cesium may fail without ion token.
-    }
-    return () => {
-      viewerRef.current?.destroy();
-      viewerRef.current = null;
-    };
-  }, []);
+    setLoading(true);
+    refreshSummary()
+      .catch((err) => setError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setLoading(false));
+  }, [selectedProject?.id]);
 
   async function generateModel() {
+    setGenerating(true);
     setError(null);
     try {
       const started = await apiPost<Record<string, unknown>>('/deposit-model', {
         project_id: selectedProject?.id,
         async: false,
       });
-      let job = started;
+
+      let nextJob = started;
       if (started.job_id && started.status !== 'complete') {
-        job = await apiGet<Record<string, unknown>>(`/jobs/${started.job_id}`);
+        nextJob = await pollJob(String(started.job_id));
       }
-      setJob(job);
-      const refreshed = await apiGet<Record<string, unknown>>('/deposit/summary');
-      setSummary(refreshed);
+      setJob(nextJob);
+
+      const jobBlocks = extractBlocks(nextJob);
+      const refreshed = await refreshSummary();
+      const result = nextJob.result;
+      const resultSummary =
+        result && typeof result === 'object'
+          ? (result as { summary?: DepositSummary }).summary
+          : undefined;
+
+      const jobResult =
+        result && typeof result === 'object' ? (result as DepositSummary) : undefined;
+
+      setSummary({
+        ...refreshed,
+        ...(resultSummary ?? {}),
+        blocks_preview: jobBlocks?.length ? jobBlocks : refreshed.blocks_preview,
+        mesh_url: jobResult?.mesh_url ?? refreshed.mesh_url,
+        centre: resultSummary?.centre ?? refreshed.centre,
+        block_count:
+          resultSummary?.block_count ??
+          jobBlocks?.length ??
+          refreshed.block_count,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setGenerating(false);
     }
   }
 
   const summaryRows = summary
     ? Object.entries(summary)
-        .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+        .filter(([, value]) => ['string', 'number', 'boolean'].includes(typeof value))
         .map(([field, value]) => ({ field, value }))
     : [];
 
-  const blockRows = Array.isArray(summary?.blocks_preview)
-    ? (summary.blocks_preview as Array<Record<string, unknown>>)
-    : [];
+  const blockRows = summary?.blocks_preview ?? extractBlocks(job) ?? [];
 
   return (
     <div>
       <PageHeader
         domain="geology"
         title="Deposit Model"
-        description="Block model summary, Cesium 3D viewer, and link to ore financials."
+        description="3D block model viewer, resource summary, and link to ore financials."
         actions={
-          <Button variant="primary" onClick={generateModel}>
-            Generate deposit model
+          <Button variant="primary" onClick={generateModel} disabled={generating}>
+            {generating ? 'Generating…' : 'Generate deposit model'}
           </Button>
         }
       />
@@ -98,12 +139,22 @@ export function DepositPage() {
         </p>
       ) : null}
 
-      {error ? <pre className="tf-error mb-6">{error}</pre> : null}
+      {error ? <pre className="tf-error mb-2">{error}</pre> : null}
+      {error && (error.includes('401') || error.includes('Authentication')) ? (
+        <p className="tf-error mb-6 text-sm">
+          Sign in at <Link to="/login" className="tf-link">/login</Link> to generate models.
+        </p>
+      ) : null}
+      {loading ? <p className="mb-4 text-sediment-muted">Loading deposit summary…</p> : null}
 
-      <div
-        ref={cesiumRef}
-        className="mb-6 h-[360px] w-full overflow-hidden rounded-lg border border-forge-600 shadow-glow"
-      />
+      {!loading || blockRows.length > 0 ? (
+        <DepositCesiumViewer
+          blocks={blockRows}
+          centre={summary?.centre}
+          meshUrl={summary?.mesh_url}
+          className="mb-6 h-[420px] w-full"
+        />
+      ) : null}
 
       {summary ? (
         <div className="mb-6 grid gap-4 sm:grid-cols-3">
@@ -121,7 +172,11 @@ export function DepositPage() {
             }
             accent="strata"
           />
-          <StatCard label="Blocks" value={String(summary.block_count ?? 'n/a')} accent="mineral" />
+          <StatCard
+            label="Blocks"
+            value={String(summary.block_count ?? blockRows.length)}
+            accent="mineral"
+          />
         </div>
       ) : null}
 
@@ -141,7 +196,7 @@ export function DepositPage() {
       {blockRows.length ? (
         <Card title="Block model preview" className="mt-6">
           <DataTable
-            columns={['x', 'y', 'z', 'ta_ppm_mean', 'unit']}
+            columns={['lon', 'lat', 'elevation_m', 'ta_ppm_mean', 'unit']}
             rows={blockRows}
           />
         </Card>

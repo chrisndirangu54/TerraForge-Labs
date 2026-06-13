@@ -12,9 +12,9 @@ from backend.processing.raster_pipeline import (
 )
 from backend.api.services.response_display import enrich_response
 from backend.processing.cog_tiles import cog_metadata, cog_preview, cog_tile_response
+from backend.api.services.map_layers import build_map_layers_response
 from backend.processing.mapping_stack import (
     cesium_tileset_job,
-    layer_catalogue,
     map_provider_plan,
     offline_pack_manifest,
 )
@@ -87,8 +87,10 @@ async def fetch_stac_item(
 
 
 @router.get("/mapping/layers")
-async def mapping_layers() -> dict:
-    return enrich_response(layer_catalogue())
+async def mapping_layers(
+    project_id: str | None = Query(default=None),
+) -> dict:
+    return enrich_response(build_map_layers_response(project_id=project_id))
 
 
 @router.get("/mapping/cog/{storage_key:path}/metadata")

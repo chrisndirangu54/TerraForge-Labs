@@ -76,12 +76,17 @@ def test_deposit_model_generation_updates_summary():
     job_id = job_body["job_id"]
     assert job_body["status"] == "complete"
     assert job_body["result"]["blocks_preview"]
-    assert job_body["result"]["block_model_url"] == f"minio://models/{job_id}_block_model.csv"
+    assert f"{job_id}_block_model.csv" in job_body["result"]["block_model_url"]
+    assert job_body["result"]["block_model_storage_key"] == f"models/{job_id}_block_model.csv"
 
     summary = client.get("/deposit/summary", headers=headers).json()
     assert summary["source"] == f"{job_id}_block_model.csv"
     assert summary["block_count"] == 20
-    assert summary["mesh_url"] == f"minio://models/{job_id}.obj"
+    assert summary["mesh_url"] == f"/deposit/mesh?base={job_id}"
+
+    mesh = client.get(summary["mesh_url"], headers=headers)
+    assert mesh.status_code == 200
+    assert mesh.text.startswith("o TerraforgeDeposit")
     assert len(summary["blocks_preview"]) == 20
 
 

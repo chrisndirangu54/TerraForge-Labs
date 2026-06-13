@@ -19,6 +19,7 @@ class _MainMapScreenState extends State<MainMapScreen> {
   bool _loading = false;
   String? _error;
   Map<String, dynamic>? _layers;
+  Map<String, dynamic>? _featureLayers;
   List<Map<String, dynamic>> _points = [];
   String _mapMode = '2d_satellite';
   final Set<String> _activeLayers = {};
@@ -44,8 +45,13 @@ class _MainMapScreenState extends State<MainMapScreen> {
       }
 
       final modes = layers['map_modes'];
+      final featureLayers = layers['feature_layers'];
+
       setState(() {
         _layers = layers;
+        _featureLayers = featureLayers is Map
+            ? Map<String, dynamic>.from(featureLayers)
+            : null;
         _points = points;
         if (modes is List && modes.isNotEmpty) {
           _mapMode = '${modes.first}';
@@ -64,12 +70,19 @@ class _MainMapScreenState extends State<MainMapScreen> {
   }
 
   Iterable<String> _defaultLayers(Map<String, dynamic> layers) sync* {
+    final featureLayers = layers['feature_layers'];
+    if (featureLayers is Map) {
+      for (final layerId in featureLayers.keys) {
+        yield '$layerId';
+      }
+      return;
+    }
     final groups = layers['layer_groups'];
     if (groups is Map) {
       for (final entry in groups.entries) {
         final groupLayers = entry.value;
         if (groupLayers is List && groupLayers.isNotEmpty) {
-          yield '${groupLayers.first}';
+          yield '${entry.key}:${groupLayers.first}';
         }
       }
     }
@@ -133,6 +146,7 @@ class _MainMapScreenState extends State<MainMapScreen> {
                 MapCanvas(
                   points: _points,
                   activeLayers: _activeLayers.toList(),
+                  featureLayers: _featureLayers,
                 ),
                 const SizedBox(height: 16),
                 Text('Layers', style: Theme.of(context).textTheme.titleSmall),
@@ -145,20 +159,24 @@ class _MainMapScreenState extends State<MainMapScreen> {
                       children: [
                         if (groupLayers is List)
                           ...groupLayers.map((layer) {
-                            final name = '$layer';
+                            final layerId = '${entry.key}:$layer';
+                            final hasData = _featureLayers?.containsKey(layerId) ?? false;
                             return SwitchListTile(
                               dense: true,
-                              title: Text(name.replaceAll('_', ' ')),
-                              value: _activeLayers.contains(name),
-                              onChanged: (enabled) {
-                                setState(() {
-                                  if (enabled == true) {
-                                    _activeLayers.add(name);
-                                  } else {
-                                    _activeLayers.remove(name);
-                                  }
-                                });
-                              },
+                              title: Text('$layer'.replaceAll('_', ' ')),
+                              subtitle: hasData ? null : const Text('No data yet'),
+                              value: _activeLayers.contains(layerId),
+                              onChanged: hasData
+                                  ? (enabled) {
+                                      setState(() {
+                                        if (enabled == true) {
+                                          _activeLayers.add(layerId);
+                                        } else {
+                                          _activeLayers.remove(layerId);
+                                        }
+                                      });
+                                    }
+                                  : null,
                             );
                           }),
                       ],

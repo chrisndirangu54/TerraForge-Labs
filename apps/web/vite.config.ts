@@ -1,6 +1,10 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 const API_TARGET = process.env.VITE_API_PROXY_TARGET || 'http://localhost:8000';
 const cesiumSource = 'node_modules/cesium/Build/Cesium';
@@ -67,8 +71,17 @@ export default defineConfig({
   define: {
     CESIUM_BASE_URL: JSON.stringify(`/${cesiumBaseUrl}`),
   },
+  resolve: {
+    alias: [
+      {
+        find: /^mersenne-twister$/,
+        replacement: path.resolve(rootDir, 'src/shims/mersenne-twister.ts'),
+      },
+    ],
+  },
   optimizeDeps: {
     exclude: ['cesium'],
+    needsInterop: ['mersenne-twister'],
   },
   server: {
     port: 5173,

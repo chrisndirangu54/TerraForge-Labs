@@ -1,5 +1,11 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { apiGet, apiPost } from '../api/client';
+import { CashflowPanel } from '../components/financial/CashflowPanel';
+import { SensitivityChart } from '../components/financial/SensitivityChart';
+import { Button } from '../components/ui/Button';
+import { Card } from '../components/ui/Card';
+import { PageHeader } from '../components/ui/PageHeader';
+import { StatCard } from '../components/ui/StatCard';
 import { useProjectStore } from '../stores/projectStore';
 
 type CommodityPreset = {
@@ -149,26 +155,23 @@ export function FinancialAnalysisPage() {
 
   return (
     <div>
-      <h2>Ore Financial Analysis</h2>
-      <p>
-        NPV, IRR, payback, and price-risk Monte Carlo for mineral ore projects. Grade can
-        auto-fill from kriging/ingest when a project is selected.
-      </p>
+      <PageHeader
+        domain="geology"
+        title="Ore Financials"
+        description="NPV, IRR, payback, cash flow schedule, and price-risk Monte Carlo for mineral projects."
+      />
 
       <form
         onSubmit={runAnalysis}
-        style={{
-          display: 'grid',
-          gap: '0.75rem',
-          maxWidth: 520,
-          padding: '1rem',
-          border: '1px solid #ddd',
-          borderRadius: 6,
-        }}
+        className="mb-8 grid max-w-2xl gap-4 rounded-xl border border-forge-600/50 bg-forge-900/40 p-5"
       >
-        <label>
+        <label className="flex flex-col gap-1 text-sm text-sediment-muted">
           Commodity
-          <select value={commodity} onChange={(e) => setCommodity(e.target.value)}>
+          <select
+            className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+            value={commodity}
+            onChange={(e) => setCommodity(e.target.value)}
+          >
             {presets
               ? Object.entries(presets.commodities).map(([key, value]) => (
                   <option key={key} value={key}>
@@ -180,39 +183,75 @@ export function FinancialAnalysisPage() {
               )}
           </select>
         </label>
-        <label>
-          Ore tonnes (life-of-mine)
-          <input value={oreTonnes} onChange={(e) => setOreTonnes(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Grade {preset ? `(${preset.grade_unit})` : ''}
-          <input value={grade} onChange={(e) => setGrade(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Recovery (0–1)
-          <input value={recovery} onChange={(e) => setRecovery(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Metal price (USD)
-          <input value={metalPrice} onChange={(e) => setMetalPrice(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Opex (USD / tonne ore)
-          <input value={opex} onChange={(e) => setOpex(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Capex (USD)
-          <input value={capex} onChange={(e) => setCapex(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Mine life (years)
-          <input value={mineLife} onChange={(e) => setMineLife(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label>
-          Discount rate
-          <input value={discountRate} onChange={(e) => setDiscountRate(e.target.value)} style={{ width: '100%' }} />
-        </label>
-        <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Ore tonnes (life-of-mine)
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={oreTonnes}
+              onChange={(e) => setOreTonnes(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Grade {preset ? `(${preset.grade_unit})` : ''}
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Recovery (0–1)
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={recovery}
+              onChange={(e) => setRecovery(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Metal price (USD)
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={metalPrice}
+              onChange={(e) => setMetalPrice(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Opex (USD / tonne ore)
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={opex}
+              onChange={(e) => setOpex(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Capex (USD)
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={capex}
+              onChange={(e) => setCapex(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Mine life (years)
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={mineLife}
+              onChange={(e) => setMineLife(e.target.value)}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-sediment-muted">
+            Discount rate
+            <input
+              className="rounded-lg border border-forge-600 bg-forge-950 px-3 py-2 text-sediment"
+              value={discountRate}
+              onChange={(e) => setDiscountRate(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <label className="flex items-center gap-2 text-sm text-sediment-muted">
           <input
             type="checkbox"
             checked={runMonteCarlo}
@@ -220,91 +259,132 @@ export function FinancialAnalysisPage() {
           />
           Run price Monte Carlo
         </label>
+
         {selectedProject ? (
-          <p style={{ fontSize: '0.85rem', margin: 0 }}>
+          <p className="text-xs text-sediment-dim">
             Linked project: {selectedProject.name} — grade from geodata when left blank.
           </p>
         ) : (
-          <p style={{ fontSize: '0.85rem', margin: 0 }}>No project selected; Matuu synthetic grade used.</p>
+          <p className="text-xs text-sediment-dim">No project selected; Matuu synthetic grade used.</p>
         )}
-        <button type="submit" disabled={loading}>
-          {loading ? 'Analyzing...' : 'Run financial analysis'}
-        </button>
+
+        <Button type="submit" variant="primary" disabled={loading}>
+          {loading ? 'Analyzing…' : 'Run financial analysis'}
+        </Button>
       </form>
 
-      {error ? <pre style={{ color: 'crimson' }}>{error}</pre> : null}
+      {error ? <pre className="tf-error mb-6">{error}</pre> : null}
 
       {analysis ? (
-        <section style={{ marginTop: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem' }}>Key metrics</h3>
-          <table style={{ borderCollapse: 'collapse', minWidth: 360 }}>
-            <tbody>
-              <tr>
-                <td style={{ padding: '0.25rem 0.75rem 0.25rem 0' }}>NPV</td>
-                <td>{formatUsd(analysis.metrics.npv_usd)}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '0.25rem 0.75rem 0.25rem 0' }}>IRR</td>
-                <td>{formatPct(analysis.metrics.irr)}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '0.25rem 0.75rem 0.25rem 0' }}>Payback</td>
-                <td>
-                  {analysis.metrics.payback_years !== null
-                    ? `${analysis.metrics.payback_years.toFixed(1)} years`
-                    : 'n/a'}
-                </td>
-              </tr>
-              <tr>
-                <td style={{ padding: '0.25rem 0.75rem 0.25rem 0' }}>Annual revenue</td>
-                <td>{formatUsd(analysis.annual.annual_revenue_usd)}</td>
-              </tr>
-              <tr>
-                <td style={{ padding: '0.25rem 0.75rem 0.25rem 0' }}>Recovered metal / year</td>
-                <td>{analysis.annual.annual_metal_tonnes.toFixed(2)} t</td>
-              </tr>
-            </tbody>
-          </table>
+        <div className="tf-stagger space-y-6">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard label="NPV" value={formatUsd(analysis.metrics.npv_usd)} accent="ore" />
+            <StatCard label="IRR" value={formatPct(analysis.metrics.irr)} accent="mineral" />
+            <StatCard
+              label="Payback"
+              value={
+                analysis.metrics.payback_years != null
+                  ? `${analysis.metrics.payback_years.toFixed(1)} yrs`
+                  : 'n/a'
+              }
+              accent="strata"
+            />
+            <StatCard
+              label="Annual revenue"
+              value={formatUsd(analysis.annual.annual_revenue_usd)}
+              accent="moss"
+            />
+          </div>
 
           {analysis.grade_from_geodata ? (
-            <p style={{ fontSize: '0.85rem' }}>
+            <p className="text-sm text-sediment-muted">
               Grade from geodata: {analysis.grade_from_geodata.grade.toFixed(1)}{' '}
               {analysis.grade_from_geodata.grade_unit} (
               {analysis.grade_from_geodata.observation_count} samples)
             </p>
           ) : null}
 
-          {analysis.monte_carlo ? (
-            <div style={{ marginTop: '1rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem' }}>Price risk (Monte Carlo)</h4>
-              <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                NPV P10 / P50 / P90: {formatUsd(analysis.monte_carlo.npv.p10_usd)} /{' '}
-                {formatUsd(analysis.monte_carlo.npv.p50_usd)} /{' '}
-                {formatUsd(analysis.monte_carlo.npv.p90_usd)} — positive probability{' '}
-                {(analysis.monte_carlo.npv.positive_probability * 100).toFixed(0)}%
-              </p>
-            </div>
-          ) : null}
+          <Card title="Cash flow schedule" subtitle="Annual flows and cumulative position" accent="ore">
+            <CashflowPanel
+              cashFlows={analysis.cash_flows}
+              paybackYears={analysis.metrics.payback_years}
+              npvUsd={analysis.metrics.npv_usd}
+            />
+          </Card>
 
-          {sensitivity ? (
-            <div style={{ marginTop: '1rem' }}>
-              <h4 style={{ margin: '0 0 0.5rem' }}>Sensitivity (top drivers)</h4>
-              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.9rem' }}>
-                {sensitivity.tornado.slice(0, 5).map((row) => (
-                  <li key={`${row.variable}-${row.factor}`}>
-                    {row.variable} ×{row.factor.toFixed(1)} → ΔNPV{' '}
-                    {formatUsd(row.delta_npv_usd)}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
+          <div className="grid gap-5 lg:grid-cols-2">
+            {analysis.monte_carlo ? (
+              <Card title="Price risk" subtitle="Monte Carlo NPV bands" accent="mineral">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-lg border border-forge-600/40 bg-forge-950/50 p-3">
+                      <p className="tf-label">P10</p>
+                      <p className="font-mono text-sm text-ore-300">
+                        {formatUsd(analysis.monte_carlo.npv.p10_usd)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-forge-600/40 bg-forge-950/50 p-3">
+                      <p className="tf-label">P50</p>
+                      <p className="font-mono text-sm text-mineral-300">
+                        {formatUsd(analysis.monte_carlo.npv.p50_usd)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-forge-600/40 bg-forge-950/50 p-3">
+                      <p className="tf-label">P90</p>
+                      <p className="font-mono text-sm text-moss-400">
+                        {formatUsd(analysis.monte_carlo.npv.p90_usd)}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-sediment-muted">
+                    Positive NPV probability:{' '}
+                    <span className="font-mono text-ore-300">
+                      {(analysis.monte_carlo.npv.positive_probability * 100).toFixed(0)}%
+                    </span>
+                  </p>
+                </div>
+              </Card>
+            ) : null}
 
-          <details style={{ marginTop: '1rem' }}>
-            <summary>Cash flows</summary>
-            <pre style={{ fontSize: '0.8rem' }}>{JSON.stringify(analysis.cash_flows, null, 2)}</pre>
-          </details>
-        </section>
+            {sensitivity ? (
+              <Card title="Sensitivity" subtitle="Top NPV drivers" accent="mineral">
+                <SensitivityChart
+                  rows={sensitivity.tornado}
+                  baseNpvUsd={sensitivity.base_npv_usd}
+                />
+              </Card>
+            ) : null}
+          </div>
+
+          <Card title="Operating summary">
+            <dl className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <dt className="tf-label">Recovered metal / year</dt>
+                <dd className="font-mono text-sediment">
+                  {analysis.annual.annual_metal_tonnes.toFixed(2)} t
+                </dd>
+              </div>
+              <div>
+                <dt className="tf-label">Annual opex</dt>
+                <dd className="font-mono text-sediment">
+                  {formatUsd(analysis.annual.annual_opex_usd)}
+                </dd>
+              </div>
+              <div>
+                <dt className="tf-label">Annual EBITDA</dt>
+                <dd className="font-mono text-sediment">
+                  {formatUsd(analysis.annual.annual_ebitda_usd)}
+                </dd>
+              </div>
+              <div>
+                <dt className="tf-label">Undiscounted cash flow</dt>
+                <dd className="font-mono text-sediment">
+                  {formatUsd(analysis.metrics.undiscounted_cash_flow_usd)}
+                </dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
       ) : null}
     </div>
   );

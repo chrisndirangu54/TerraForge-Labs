@@ -5,15 +5,45 @@ import 'package:flutter/material.dart';
 class MapCanvas extends StatelessWidget {
   final List<Map<String, dynamic>> points;
   final List<String> activeLayers;
+  final Map<String, dynamic>? featureLayers;
 
   const MapCanvas({
     super.key,
     required this.points,
     required this.activeLayers,
+    this.featureLayers,
   });
+
+  List<Map<String, dynamic>> _collectPoints() {
+    final merged = <Map<String, dynamic>>[...points];
+    final layers = featureLayers;
+    if (layers == null) return merged;
+
+    for (final layerId in activeLayers) {
+      final layer = layers[layerId];
+      if (layer is! Map) continue;
+      final features = layer['features'];
+      if (features is! List) continue;
+      for (final feature in features.whereType<Map>()) {
+        final geometry = feature['geometry'];
+        if (geometry is! Map) continue;
+        final coordinates = geometry['coordinates'];
+        if (coordinates is! List || coordinates.length < 2) continue;
+        final properties = feature['properties'];
+        merged.add({
+          'lon': coordinates[0],
+          'lat': coordinates[1],
+          if (properties is Map) ...Map<String, dynamic>.from(properties),
+          'layer_id': layerId,
+        });
+      }
+    }
+    return merged;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final plotted = _collectPoints();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -28,10 +58,12 @@ class MapCanvas extends StatelessWidget {
                   spacing: 6,
                   children: activeLayers
                       .take(4)
-                      .map((layer) => Chip(
-                            label: Text(layer, style: const TextStyle(fontSize: 10)),
-                            visualDensity: VisualDensity.compact,
-                          ))
+                      .map(
+                        (layer) => Chip(
+                          label: Text(layer, style: const TextStyle(fontSize: 10)),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      )
                       .toList(),
                 ),
               ),
@@ -39,7 +71,7 @@ class MapCanvas extends StatelessWidget {
               height: 220,
               width: double.infinity,
               child: CustomPaint(
-                painter: _MapCanvasPainter(points: points),
+                painter: _MapCanvasPainter(points: plotted),
               ),
             ),
           ],
@@ -53,6 +85,15 @@ class _MapCanvasPainter extends CustomPainter {
   final List<Map<String, dynamic>> points;
 
   _MapCanvasPainter({required this.points});
+
+  Color _colorForPoint(Map<String, dynamic> point) {
+    final layerId = '${point['layer_id'] ?? ''}';
+    if (layerId.contains('borehole')) return Colors.lightBlueAccent;
+    if (layerId.contains('deposit')) return Colors.deepOrange;
+    final grade = point['ta_ppm'] ?? point['ta_ppm_mean'];
+    if (grade is num && grade > 150) return Colors.orange;
+    return Colors.teal;
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -90,7 +131,7 @@ class _MapCanvasPainter extends CustomPainter {
       final lat = (point['lat'] as num).toDouble();
       final x = ((lon - west) / (east - west)) * (size.width - 40) + 20;
       final y = size.height - (((lat - south) / (north - south)) * (size.height - 40) + 20);
-      canvas.drawCircle(Offset(x, y), 5, Paint()..color = Colors.teal);
+      canvas.drawCircle(Offset(x, y), 5, Paint()..color = _colorForPoint(point));
     }
   }
 
