@@ -3902,7 +3902,7 @@ version = "1.7.3"
 description = "Kriging Toolkit for Python."
 optional = false
 python-versions = ">=3.9"
-groups = ["ml"]
+groups = ["main", "ml"]
 files = [
     {file = "pykrige-1.7.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:8170c257dde195343652e9f7ffb74b7a6f660fc33bdf4fe84f0d16e7a23d1101"},
     {file = "pykrige-1.7.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:aa0dd01493d19c094337a4618cbec898a323fd91ee1b9f085ba29a6a3e7e1a1c"},
@@ -5824,4 +5824,4 @@ type = ["pytest-mypy (>=1.0.1) ; platform_python_implementation != \"PyPy\""]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "008aca71ac275328e7f528358a7f6e15e04f0e02d63702acf97523bd43c530ca"
+content-hash = "ef5b00395058b5418aa5f333d0b92295f02104d19881a7849e9fac021aa2f945"
