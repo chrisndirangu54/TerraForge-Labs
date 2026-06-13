@@ -13,10 +13,10 @@ RUN apt-get update && apt-get install -y \
 
 RUN pip install poetry
 
-COPY pyproject.toml ./
-RUN poetry lock
-RUN poetry install --no-interaction --no-ansi --only main --no-root
+COPY pyproject.toml poetry.lock ./
+RUN poetry config virtualenvs.create false && \
+    poetry install --no-interaction --no-ansi --only main --no-root
 
 COPY . .
 
-CMD poetry run uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "uvicorn backend.api.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
