@@ -55,6 +55,7 @@ app = FastAPI(title="Terraforge Labs API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://terraforgelabs.netlify.app",
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
