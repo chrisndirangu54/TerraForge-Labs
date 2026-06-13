@@ -14,8 +14,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install poetry
 
 COPY pyproject.toml poetry.lock ./
-RUN poetry config virtualenvs.create false && \
-    poetry install --no-interaction --no-ansi --only main --no-root
+RUN poetry config virtualenvs.create false && poetry lock && poetry install --no-interaction --no-ansi --only main --no-root
 
 COPY . .
 
